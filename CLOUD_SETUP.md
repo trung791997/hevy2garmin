@@ -1,5 +1,7 @@
 # Vercel dashboard
 
+Live dashboard: https://hevy2garmin-dashboard.vercel.app
+
 Project: `trung791997s-projects/hevy2garmin-dashboard`.
 The Next.js app uses Root Directory `web` and Node.js 24.
 
@@ -30,6 +32,11 @@ configuration in `web/.env.local` remains separate from cloud configuration.
 this request using the production `CRON_SECRET`. Manual sync remains available.
 `H2G_SERVER_SYNC_SCHEDULE="daily at 08:00 UTC"` shows the actual Vercel schedule
 instead of the GitHub Actions toggle. No GitHub token is needed for this schedule.
+
+At cutover, the saved sync start date was set to `2026-10-26` as requested.
+The 46 older unsynced workouts are excluded. This setting can be changed in
+Settings; clearing it makes the older workouts eligible again. No historical
+workouts were uploaded during deployment verification.
 
 ## Deploy an update
 
