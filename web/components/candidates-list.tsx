@@ -129,6 +129,7 @@ function CandidateRow({ c, onSynced }: { c: Candidate; onSynced: (id: string) =>
       {result?.plan && <SyncPlanDetails plan={result.plan} selected={selected} onSelect={(id) => { setSelected(id); setConfirm(false); }} createNew={createNew} onCreateNew={(value) => { setCreateNew(value); setConfirm(false); }} />}
       {result?.warnings?.map((warning) => <p className="mt-2 text-xs text-warm" key={warning}>{warning}</p>)}
       {result?.noteStatus && <p className="mt-2 text-xs text-text-secondary">{result.noteStatus}</p>}
+      {result?.error && result.status !== "synced" && <p role="status" className="mt-2 text-xs text-warm">{result.error}</p>}
       {error && (
         <div className="mt-1.5 text-xs text-danger" role="alert">
           {error}

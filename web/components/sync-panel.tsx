@@ -183,6 +183,7 @@ export function SyncPanel({ ready }: { ready: boolean }) {
           {result.plan && <SyncPlanDetails plan={result.plan} selected={selectedActivityId} onSelect={(id) => { setSelectedActivityId(id); setConfirmLive(false); }} createNew={createNew} onCreateNew={(value) => { setCreateNew(value); setConfirmLive(false); }} />}
           {result.hr && <p className="mt-3 text-sm text-text-secondary">HR: {result.hr.devices.length ? `${result.hr.devices.join(", ")} detected` : result.hr.source.replaceAll("_", " ")} · approximately {result.hr.coveragePct}% coverage. {result.hr.attribution}</p>}
           {result.noteStatus && <p className="mt-3 text-sm text-text-secondary">{result.noteStatus}</p>}
+          {result.error && result.status !== "synced" && <p role="status" className="mt-2 text-sm text-warm">{result.error}</p>}
           {result.warnings?.map((warning) => <p key={warning} role="status" className="mt-2 text-sm text-warm">{warning}</p>)}
 
           {result.workout && (
