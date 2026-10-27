@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import Link from "next/link";
 import { getDb } from "@/lib/db";
 import { resyncedLabel } from "@/lib/resynced";
@@ -67,7 +68,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     year: "numeric",
     month: "short",
     day: "numeric",

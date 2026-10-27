@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import { getDb } from "@/lib/db";
 import { SettingsForm } from "@/components/settings-form";
 import { DangerZone } from "@/components/danger-zone";
@@ -87,7 +88,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     year: "numeric",
     month: "short",
     day: "numeric",

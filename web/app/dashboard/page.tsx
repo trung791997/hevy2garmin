@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import { getDb } from "@/lib/db";
 import { loadGarminConnection, loadHevyConnection } from "@/lib/connections";
 import { SyncPanel } from "@/components/sync-panel";
@@ -163,7 +164,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     month: "short",
     day: "numeric",
     hour: "2-digit",

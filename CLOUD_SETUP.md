@@ -8,7 +8,9 @@ account connections, settings, and sync history. Its production connection is
 provided by the Vercel integration. The existing older Vercel projects have their
 own database and were not changed.
 
-The dashboard keeps the same login password as the local setup. Signing and cron
+The dashboard keeps the same login password as the local setup.
+`H2G_DISPLAY_TIMEZONE=America/Chicago` preserves local dates in server-rendered
+history; workout timezone remains the separate saved profile setting. Signing and cron
 secrets are separate production secrets stored in Vercel. Do not commit or upload
 `.local/`, `.env` files, database dumps, or Vercel authentication state.
 

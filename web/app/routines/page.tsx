@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import { getDb } from "@/lib/db";
 import { HevyRoutinesList } from "@/components/hevy-routines-list";
 import { RoutineSchedules } from "@/components/routine-schedules";
@@ -92,7 +93,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     year: "numeric",
     month: "short",
     day: "numeric",
