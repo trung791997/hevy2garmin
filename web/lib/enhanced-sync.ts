@@ -164,6 +164,20 @@ export async function runEnhancedSync(
       );
     }
   }
+  if (recording?.metadata.source === "unknown") {
+    const [cache] =
+      await sql`SELECT data FROM hr_cache WHERE hevy_id=${workout.id} LIMIT 1`;
+    const previous = cache?.data?.metadata;
+    if (previous)
+      recording.metadata = {
+        ...recording.metadata,
+        source: previous.source,
+        devices: previous.devices,
+        attribution: previous.attribution,
+        sourceActivityId:
+          previous.sourceActivityId ?? recording.metadata.sourceActivityId,
+      };
+  }
   if (plan?.action === "replace" && !dryRun) {
     try {
       if (!bytes)
@@ -438,7 +452,10 @@ export async function runEnhancedSync(
       status: warnings.length ? "review" : "synced",
       message: warnings.join(" ") || "Synced",
       noteStatus: result.noteStatus,
-      sourceActivityId: activityId ?? result.garminActivityId,
+      sourceActivityId:
+        recording?.metadata.sourceActivityId ??
+        activityId ??
+        result.garminActivityId,
       hrPending: settings.hrFusion && !recording?.points.length,
     });
   }

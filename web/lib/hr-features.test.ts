@@ -90,6 +90,10 @@ function database() {
       values.set("hr:" + args[0], args[1]);
       return [];
     }
+    if (query.includes("SELECT data FROM hr_cache"))
+      return values.has("hr:" + args[0])
+        ? [{ data: values.get("hr:" + args[0]) }]
+        : [];
     return [];
   }) as unknown as Sql;
   sql.json = (v: unknown) => v;
@@ -290,6 +294,27 @@ describe("watch matching and preview", () => {
     expect(result.plan?.action).toBe("describe");
     expect(result.wouldUpload).toBe(false);
     expect(g.upload).not.toHaveBeenCalled();
+  });
+  it("preserves original sensor attribution when resync reads an app-uploaded replacement", async () => {
+    const g = gateway(generateFit(workout, points).fit),
+      db = database(),
+      dependencies = deps(g);
+    dependencies.store.isSynced = async () => true;
+    db.values.set("hr:workout-1", {
+      metadata: {
+        ...readHrRecording(sensorFit("CIRQA"), start, end, "99").metadata,
+      },
+    });
+    const result = await runEnhancedSync(
+      dependencies,
+      db.sql,
+      DEFAULT_SYNC_SETTINGS,
+      { dryRun: true, targetHevyId: workout.id, targetActivityId: 101 },
+      syncOneWorkout,
+    );
+    expect(result.hr?.devices).toEqual(["Garmin CIRQA"]);
+    expect(result.hr?.sourceActivityId).toBe("99");
+    expect(db.writes).toEqual([]);
   });
   it("keeps the original activity and uses its HR for merged dashboard statistics", async () => {
     const g = gateway(),
