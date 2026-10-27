@@ -10,7 +10,8 @@
  */
 
 export interface SyncOneLike {
-  status?: "synced" | "skipped" | "deferred" | "dry_run" | "none" | "error";
+  status?: string;
+  plan?: { message?: string };
   remaining?: number;
   dedupDecision?: string;
   workout?: { title?: string | null } | null;
@@ -87,8 +88,11 @@ export function stepLoop(prev: LoopState, input: StepInput): StepOutput {
 
   const status = result.status;
   const remaining = typeof result.remaining === "number" ? result.remaining : s.remaining;
+  if (["merge_pending", "needs_review", "processing", "target_missing"].includes(status ?? "")) {
+    return { state: { ...s, done: true, remaining, skipped: s.skipped + 1, message: result.plan?.message ?? result.error ?? (status === "merge_pending" ? "Waiting for your watch activity. Check Workouts to preview or retry." : "This workout needs review. Check Workouts before retrying.") }, cont: false };
+  }
 
-  if (status === "error") {
+  if (status === "error" || status === "failed") {
     const kind = classifyError(result.error ?? "");
     return { state: { ...s, done: true, errorKind: kind, message: result.error ?? "Sync error." }, cont: false };
   }

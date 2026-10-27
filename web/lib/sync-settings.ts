@@ -14,6 +14,9 @@ import type { FitProfile, MergeSettings } from "hevy2garmin";
 import type { Sql } from "./pending-store";
 
 export interface SyncSettings {
+  waitForWatch: boolean;
+  hevyHrNotes: boolean;
+  hevyNotePrivacy: "private" | "public" | "dashboard_only" | null;
   merge: MergeSettings;
   hrFusion: boolean;
   descriptionEnabled: boolean;
@@ -26,6 +29,9 @@ export interface SyncSettings {
 
 /** What a fresh install syncs with: merge on, sets pushed into the watch activity. */
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
+  waitForWatch: true,
+  hevyHrNotes: true,
+  hevyNotePrivacy: "private",
   merge: {
     enabled: true,
     watchStrategy: "merge",
@@ -133,6 +139,9 @@ export async function loadSyncSettings(sql: Sql): Promise<SyncSettings> {
     : d.merge.activityTypes!;
 
   return {
+    waitForWatch: bool(mergeCfg?.wait_for_watch, d.waitForWatch),
+    hevyHrNotes: bool(hrCfg?.hevy_notes, d.hevyHrNotes),
+    hevyNotePrivacy: ["private", "public", "dashboard_only"].includes(String(hrCfg?.note_privacy)) ? hrCfg!.note_privacy as SyncSettings["hevyNotePrivacy"] : d.hevyNotePrivacy,
     merge: {
       enabled: bool(mergeCfg?.merge_mode, d.merge.enabled!),
       watchStrategy:

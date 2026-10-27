@@ -22,6 +22,9 @@ interface Props {
   timezone: string | null;
   // Enhance-watch + description
   mergeMode: boolean;
+  waitForWatch?: boolean;
+  hevyHrNotes?: boolean;
+  hevyNotePrivacy?: string;
   descriptionEnabled: boolean;
   mergeOverlapPct: number | null;
   mergeMaxDriftMin: number | null;
@@ -37,9 +40,9 @@ interface Props {
 
 const INTERVALS = [30, 60, 120, 240, 360, 720, 1440];
 const STRATEGIES: { value: string; label: string }[] = [
-  { value: "replace", label: "Replace — upload a fresh strength activity" },
-  { value: "merge", label: "Merge — fold sets/reps into the watch activity" },
-  { value: "describe", label: "Describe — only set the watch activity's notes" },
+  { value: "merge", label: "Keep watch metrics — import Hevy sets" },
+  { value: "describe", label: "Add workout notes — keep watch sets" },
+  { value: "replace", label: "Replace for exercise names — advanced" },
 ];
 
 function fmtInterval(m: number): string {
@@ -102,6 +105,9 @@ export function SettingsForm(p: Props) {
   const [timezone, setTimezone] = useState(p.timezone ?? "");
   const [syncStartDate, setSyncStartDate] = useState(p.syncStartDate ?? "");
   const [mergeMode, setMergeMode] = useState(p.mergeMode);
+  const [waitForWatch, setWaitForWatch] = useState(p.waitForWatch ?? true);
+  const [hevyHrNotes, setHevyHrNotes] = useState(p.hevyHrNotes ?? true);
+  const [notePrivacy, setNotePrivacy] = useState(p.hevyNotePrivacy ?? "private");
   const [descEnabled, setDescEnabled] = useState(p.descriptionEnabled);
   const [overlap, setOverlap] = useState(p.mergeOverlapPct != null ? String(p.mergeOverlapPct) : "70");
   const [drift, setDrift] = useState(p.mergeMaxDriftMin != null ? String(p.mergeMaxDriftMin) : "20");
@@ -142,10 +148,11 @@ export function SettingsForm(p: Props) {
       const extras = extraTypes.split(",").map((t) => t.trim()).filter(Boolean);
       const body = {
         auto_sync: { enabled: autoSync, interval_minutes: interval },
-        hr_fusion: { enabled: hrFusion },
+        hr_fusion: { enabled: hrFusion, hevy_notes: hevyHrNotes, note_privacy: notePrivacy },
         merge_settings: {
           merge_watch_strategy: strategy,
           merge_mode: mergeMode,
+          wait_for_watch: waitForWatch,
           description_enabled: descEnabled,
           merge_overlap_pct: numOrUndef(overlap) ?? 70,
           merge_max_drift_min: numOrUndef(drift) ?? 20,
@@ -216,7 +223,17 @@ export function SettingsForm(p: Props) {
           </select>
         </div>
         )}
-        <Toggle label="HR fusion" checked={hrFusion} onChange={setHrFusion} hint="Pull heart-rate from a matched Garmin activity into the synced workout." />
+        <Toggle label="HR fusion" checked={hrFusion} onChange={setHrFusion} hint="Prefer the watch activity recording, including connected HR monitors. Daily monitoring is used only when no activity recording is available." />
+      </div>
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold text-text">Heart-rate source &amp; Hevy notes</h3>
+        <p className="mt-2 text-sm text-text-secondary">CIRQA and HRM 600 are detected from the recording when Garmin includes their device information. The app keeps the HR stream recorded by your watch; it cannot change which sensor the watch used. If the watch switches sensors, individual readings may not identify their source.</p>
+        <div className="mt-4"><Toggle label="Add HR summary to Hevy" checked={hevyHrNotes} onChange={setHevyHrNotes} hint="Updates one managed section in the workout description; preserves your own notes and exercise data." /></div>
+        <label className={`${labelCls} mt-4`} htmlFor="sf-note-privacy">Privacy when updating a Hevy note</label>
+        <select id="sf-note-privacy" value={notePrivacy} onChange={(e) => setNotePrivacy(e.target.value)} className={controlCls}>
+          <option value="private">Make updated workouts private</option><option value="public">Make updated workouts public</option><option value="dashboard_only">Dashboard only — do not update Hevy</option>
+        </select>
+        <p className="mt-2 text-xs text-text-muted">Hevy requires a full workout update and does not return its current privacy setting. This choice is applied whenever the app updates its HR note.</p>
       </div>
 
       {/* Profile */}
@@ -295,7 +312,9 @@ export function SettingsForm(p: Props) {
             {STRATEGIES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
           </select>
           <p className="mt-1.5 text-xs text-text-muted">How a Hevy workout is combined with a same-time watch activity.</p>
+          <p className={`mt-3 text-sm ${strategy === "replace" ? "text-warm" : "text-text-secondary"}`}>{strategy === "merge" ? "Keeps the original HR and Garmin training metrics. Imports Hevy sets, reps and weights; Garmin may show exercise names as Unknown." : strategy === "describe" ? "Keeps the original HR, training metrics and watch-recorded sets. Updates the title and workout summary." : "Creates a named replacement and removes the original only after its file backup, HR and exercise names are verified. Garmin-only training and recovery metrics do not transfer. The original file remains downloadable from the workout’s HR panel."}</p>
         </div>
+        <div className="mt-4"><Toggle label="Wait for my watch" checked={waitForWatch} onChange={setWaitForWatch} hint="If no eligible watch recording has uploaded, leave the workout pending. It will be checked again on the next daily sync, or you can preview it and explicitly create a separate activity." /></div>
       </div>
 
       {/* Advanced */}

@@ -24,7 +24,6 @@ import {
   syncOneWorkout as engineSyncOneWorkout,
   type GarminGateway,
   type SyncDeps,
-  type SyncOneOptions as EngineSyncOneOptions,
 } from "hevy2garmin";
 import type { GarminClient } from "garmin-auth";
 import { getGarminClient } from "./garmin-upload";
@@ -34,6 +33,8 @@ import { postgresSyncStore } from "./sync-store";
 import { loadSyncSettings, loadSyncStartDate } from "./sync-settings";
 import { parseStartDate, withinSyncWindow } from "./sync-window";
 import type { Sql } from "./pending-store";
+import { protectReplacements } from "./replacement-guard";
+import { runEnhancedSync, type EnhancedOptions } from "./enhanced-sync";
 
 export type {
   CandidateWorkout,
@@ -43,7 +44,7 @@ export type {
 } from "hevy2garmin";
 export { generateDescription } from "hevy2garmin";
 
-export interface SyncOneOptions extends EngineSyncOneOptions {
+export interface SyncOneOptions extends EnhancedOptions {
   /** Test seam: replace the Hevy fetch. Default: fetchAllWorkouts(). */
   fetchWorkouts?: () => Promise<HevyWorkout[]>;
   /** Test seam: replace the Garmin client. Default: getGarminClient(). */
@@ -64,7 +65,7 @@ export function buildSyncDeps(sql: Sql, options: SyncOneOptions = {}): SyncDeps 
   return {
     store: postgresSyncStore(sql),
     // Built once, lazily: the dry-run/no-candidate paths never log in to Garmin.
-    gateway: () => (gateway ??= clientFactory().then(garminGateway)),
+    gateway: () => (gateway ??= clientFactory().then(garminGateway).then((g) => protectReplacements(sql, g))),
     fetchWorkouts: async () => {
       const all = await fetchWorkouts();
       // Applied HERE, before the engine sees the list, so listCandidates and
@@ -117,11 +118,11 @@ export function listCandidates(sql: Sql, options: SyncOneOptions = {}) {
 export async function syncOneWorkout(sql: Sql, options: SyncOneOptions = {}) {
   const { fetchWorkouts: _f, garminClientFactory: _g, ...engineOptions } = options;
   const saved = await loadSyncSettings(sql);
-  return engineSyncOneWorkout(buildSyncDeps(sql, options), {
+  return runEnhancedSync(buildSyncDeps(sql, options), sql, saved, {
     merge: saved.merge,
     hrFusion: saved.hrFusion,
     descriptionEnabled: saved.descriptionEnabled,
     profile: saved.profile,
     ...engineOptions, // an explicit option still wins, which is what tests rely on
-  });
+  }, engineSyncOneWorkout);
 }

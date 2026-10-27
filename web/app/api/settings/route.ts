@@ -54,12 +54,15 @@ function sanitise(key: string, raw: Obj): Obj {
     }
   } else if (key === "hr_fusion") {
     if ("enabled" in raw) out.enabled = Boolean(raw.enabled);
+    if ("hevy_notes" in raw) out.hevy_notes = Boolean(raw.hevy_notes);
+    if (["private", "public", "dashboard_only"].includes(String(raw.note_privacy))) out.note_privacy = raw.note_privacy;
   } else if (key === "merge_settings") {
     if ("merge_watch_strategy" in raw) {
       const s = String(raw.merge_watch_strategy);
       out.merge_watch_strategy = WATCH_STRATEGIES.includes(s) ? s : "merge";
     }
     if ("merge_mode" in raw) out.merge_mode = Boolean(raw.merge_mode);
+    if ("wait_for_watch" in raw) out.wait_for_watch = Boolean(raw.wait_for_watch);
     if ("description_enabled" in raw) out.description_enabled = Boolean(raw.description_enabled);
     if ("merge_overlap_pct" in raw) {
       const n = clampInt(raw.merge_overlap_pct, 50, 95);

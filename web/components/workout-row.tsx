@@ -1,4 +1,5 @@
 "use client";
+import { HrTimeline } from "./hr-timeline";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -39,35 +40,6 @@ function StatusPill({ item }: { item: WorkoutItem }) {
   return <span className="inline-block rounded-md bg-teal/15 px-2.5 py-0.5 text-xs font-medium text-teal">{item.state}</span>;
 }
 
-function HrChart({ samples }: { samples: number[] }) {
-  const min = Math.min(...samples);
-  const max = Math.max(...samples);
-  const range = max - min || 1;
-  const avg = Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
-  const W = 600;
-  const H = 120;
-  const pad = 8;
-  const xy = (v: number, i: number) => {
-    const x = pad + (i / Math.max(1, samples.length - 1)) * (W - 2 * pad);
-    const y = pad + (1 - (v - min) / range) * (H - 2 * pad);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  };
-  const line = samples.map(xy).join(" ");
-  const area = `${pad},${H - pad} ${line} ${W - pad},${H - pad}`;
-  return (
-    <div className="mt-2">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full rounded-lg bg-surface" style={{ height: 110 }}>
-        <polygon points={area} fill="rgba(239, 68, 68, 0.12)" />
-        <polyline points={line} fill="none" stroke="#ef4444" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
-      </svg>
-      <div className="mt-1 flex justify-between text-xs text-text-muted tabular-nums">
-        <span>min {min} bpm</span>
-        <span>avg {avg} bpm</span>
-        <span>max {max} bpm</span>
-      </div>
-    </div>
-  );
-}
 
 const actionBtn =
   "min-h-11 min-w-11 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-active disabled:opacity-50";
@@ -103,8 +75,6 @@ export function WorkoutRow({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [samples, setSamples] = useState<number[] | null | undefined>(undefined); // undefined = not fetched
-  const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [unsyncing, setUnsyncing] = useState(false);
   const [acting, setActing] = useState(false);
@@ -118,22 +88,7 @@ export function WorkoutRow({
   const canUnsync = item.kind === "terminal";
   const resynced = resyncedLabel(item.resynced_at, fmtDate);
 
-  async function toggle() {
-    const next = !open;
-    setOpen(next);
-    if (next && samples === undefined) {
-      setLoading(true);
-      try {
-        const res = await fetch(withBasePath(`/api/workout/${encodeURIComponent(item.hevy_id)}/hr`));
-        const d = (await res.json().catch(() => ({}))) as { samples?: unknown };
-        setSamples(Array.isArray(d.samples) ? (d.samples as number[]) : null);
-      } catch {
-        setSamples(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-  }
+  function toggle() { setOpen((value) => !value); }
 
   async function resolve(action: "mark-synced" | "skip") {
     setActing(true);
@@ -517,17 +472,7 @@ export function WorkoutRow({
         </div>
       )}
 
-      {open && (
-        <div>
-          {loading ? (
-            <p className="mt-2 text-xs text-text-muted">Loading heart-rate…</p>
-          ) : samples ? (
-            <HrChart samples={samples} />
-          ) : (
-            <p className="mt-2 text-xs text-text-muted">No cached heart-rate for this workout yet.</p>
-          )}
-        </div>
-      )}
+      {open && <HrTimeline hevyId={item.hevy_id} />}
     </li>
   );
 }

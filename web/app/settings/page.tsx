@@ -192,8 +192,11 @@ export default async function SettingsPage() {
           vo2max={numOrNull(profile.vo2max)}
           timezone={profile.timezone != null ? String(profile.timezone) : null}
           syncStartDate={syncWindow.start_date != null ? String(syncWindow.start_date) : null}
-          mergeMode={Boolean(merge.merge_mode)}
-          descriptionEnabled={Boolean(merge.description_enabled)}
+          mergeMode={merge.merge_mode == null ? true : Boolean(merge.merge_mode)}
+          waitForWatch={merge.wait_for_watch == null ? true : Boolean(merge.wait_for_watch)}
+          hevyHrNotes={hrFusion.hevy_notes == null ? true : Boolean(hrFusion.hevy_notes)}
+          hevyNotePrivacy={String(hrFusion.note_privacy ?? "private")}
+          descriptionEnabled={merge.description_enabled == null ? true : Boolean(merge.description_enabled)}
           mergeOverlapPct={numOrNull(merge.merge_overlap_pct)}
           mergeMaxDriftMin={numOrNull(merge.merge_max_drift_min)}
           mergeActivityTypes={Array.isArray(merge.merge_activity_types) ? (merge.merge_activity_types as unknown[]).map(String) : []}
