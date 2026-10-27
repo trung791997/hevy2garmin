@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { withBasePath } from "@/lib/base-path";
 
 interface Props {
@@ -91,6 +91,7 @@ export function SettingsForm(p: Props) {
       if (j.profile.birth_year != null) setBirthYear(String(j.profile.birth_year));
       if (j.profile.sex) setSex(j.profile.sex);
       if (j.profile.vo2max != null) setVo2max(String(j.profile.vo2max));
+      markChanged();
       setPullMsg("Pulled from Garmin. Values updated below; save to keep them.");
     } catch (err) { setPullMsg(err instanceof Error ? err.message : String(err)); }
     finally { setPulling(false); }
@@ -124,6 +125,15 @@ export function SettingsForm(p: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const revision = useRef(0);
+
+  function markChanged() {
+    revision.current += 1;
+    setDirty(true);
+    setSaved(false);
+    setError(null);
+  }
 
   function numOrUndef(s: string): number | undefined {
     const t = s.trim();
@@ -137,6 +147,7 @@ export function SettingsForm(p: Props) {
     setError(null);
     setSaved(false);
     setBusy(true);
+    const savingRevision = revision.current;
     try {
       const profile: Record<string, unknown> = {};
       const w = numOrUndef(weight); if (w !== undefined) profile.weight_kg = w;
@@ -180,7 +191,11 @@ export function SettingsForm(p: Props) {
         setError(data.error ?? `Request failed (${res.status}).`);
         return;
       }
-      setSaved(true);
+      // Changes made during a request still need their own save.
+      if (savingRevision === revision.current) {
+        setSaved(true);
+        setDirty(false);
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -190,7 +205,18 @@ export function SettingsForm(p: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} onChange={markChanged} className="settings-form space-y-6">
+      <div className="settings-save-bar" aria-label="Save preferences">
+        <div className="settings-save-message">
+          <span className="text-sm font-semibold text-text">Preferences</span>
+          <p role="status" aria-live="polite" className={`text-xs ${error ? "text-danger" : saved ? "text-success" : "text-text-muted"}`}>
+            {error ?? (busy ? "Saving your preferences…" : dirty ? "Unsaved changes" : saved ? "Saved. You're all set." : "Save after making changes")}
+          </p>
+        </div>
+        <button type="submit" disabled={busy} className="settings-save-button">
+          {busy ? "Saving…" : "Save settings"}
+        </button>
+      </div>
       {!p.serverSchedule && <details className="github-settings">
         <summary>GitHub Actions <span>Optional</span></summary>
         <div>
@@ -366,13 +392,6 @@ export function SettingsForm(p: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-lg bg-teal/20 px-4 py-2 text-sm font-medium text-teal transition-colors hover:bg-teal/30 disabled:opacity-50">
-          {busy ? "Saving…" : "Save settings"}
-        </button>
-        {saved && <span className="text-xs text-success">Saved.</span>}
-        {error && <span className="text-xs text-danger" role="alert">{error}</span>}
-      </div>
     </form>
   );
 }
