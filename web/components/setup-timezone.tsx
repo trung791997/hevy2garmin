@@ -65,8 +65,7 @@ export function SetupTimezone({ current }: { current: string | null }) {
   return (
     <div>
       <p className="mb-3 text-sm text-text-secondary">
-        Your workouts carry this as their local time. Without it a 6am session can appear at
-        3am once Garmin passes it to Strava. Prefilled from your browser when empty.
+        Used for local workout times in Garmin and Strava.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <input
@@ -74,7 +73,7 @@ export function SetupTimezone({ current }: { current: string | null }) {
           id="setup-timezone"
           type="text"
           defaultValue={current ?? ""}
-          placeholder="e.g. Europe/Athens"
+          placeholder="e.g. America/Chicago"
           aria-label="Timezone (IANA)"
           className="min-w-[16rem] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
         />

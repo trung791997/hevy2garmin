@@ -97,7 +97,7 @@ function StatusPill({ status }: { status: string }) {
   };
   const cls = styles[status] ?? "bg-surface-active text-text-secondary";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       <svg
         width="11"
         height="11"

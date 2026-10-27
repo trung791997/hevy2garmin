@@ -184,20 +184,23 @@ export function SettingsForm(p: Props) {
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      {!p.serverSchedule && <div className={cardCls}>
+      {!p.serverSchedule && <details className="github-settings">
+        <summary>GitHub Actions <span>Optional</span></summary>
+        <div>
         <label className={labelCls} htmlFor="github_pat">GitHub token (auto-sync on your fork)</label>
         <input id="github_pat" type="password" autoComplete="off" value={githubPat} onChange={(e) => setGithubPat(e.target.value)}
           placeholder={p.githubTokenSet ? "•••• saved — enter a new one to replace it" : "ghp_… (repo + workflow scope)"} className={controlCls} />
-        <p className="mt-0.5 text-xs text-text-muted">Stored in your database, same row the Python dashboard uses. Needed to enable auto-sync on Vercel.</p>
-      </div>}
+        <p className="mt-2 text-xs text-text-muted">Optional. Used by GitHub Actions to run scheduled syncs on your fork. Manual syncing does not need a GitHub token.</p>
+        </div>
+      </details>}
       {/* Sync */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {p.serverSchedule ? (
           <div className={cardCls}>
             <span className="text-sm font-semibold text-text">Auto-sync</span>
             <p className="mt-0.5 text-xs text-text-muted">
-              This server syncs {p.serverSchedule}, and the Hevy webhook syncs each finished workout.
-              The schedule is part of the server&apos;s deployment.
+              Scheduled sync runs {p.serverSchedule}. You can also sync manually at any time.
+              The schedule is managed by this deployment.
             </p>
           </div>
         ) : (

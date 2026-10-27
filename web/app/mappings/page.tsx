@@ -63,9 +63,7 @@ export default async function MappingsPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-text">Exercise mappings</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          {data.builtin.length} Hevy exercises mapped to Garmin FIT categories.
-          When you upload a workout, each exercise is translated so it displays
-          correctly in Garmin Connect.
+          {data.builtin.length} built-in exercise mappings. Add overrides to match the names you use in Hevy.
         </p>
       </header>
 

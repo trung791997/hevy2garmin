@@ -94,13 +94,12 @@ export function SyncPanel({ ready }: { ready: boolean }) {
   }
 
   return (
-    <section className="mb-8 rounded-xl border border-border bg-surface-elevated p-5">
+    <section className="sync-tool">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-text">Run a sync</h2>
+          <h2 className="text-lg font-semibold text-text">Sync the next workout</h2>
           <p className="mt-0.5 text-sm text-text-secondary">
-            Preview shows what the next sync would do. Nothing is uploaded until
-            you choose Sync now.
+            Preview the next workout before choosing to upload it.
           </p>
         </div>
         <div className="flex items-center gap-2">

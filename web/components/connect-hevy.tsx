@@ -61,7 +61,9 @@ export function ConnectHevy({ connected }: { connected: boolean }) {
           ? "Hevy is connected. Enter a new key to replace it."
           : "Paste your Hevy API key. Find it in the Hevy app under Settings → API."}
       </p>
+      <label htmlFor="hevy-api-key" className="block text-sm text-text-secondary">Hevy API key</label>
       <input
+        id="hevy-api-key"
         type="password"
         autoComplete="off"
         value={key}

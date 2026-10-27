@@ -110,7 +110,7 @@ function StatusPill({ status }: { status: string }) {
   };
   const s = map[status] ?? { cls: "bg-surface-active text-text-secondary", label: status };
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
+    <span className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
       {s.label}
     </span>
   );
@@ -137,11 +137,6 @@ export default async function RoutinesPage() {
         </p>
       </header>
 
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
-        Sync a Hevy routine to Garmin as a planned workout and add it to a
-        calendar date. Synced routines are listed below.
-      </div>
-
       {data.dbConfigured && (
         <HevyRoutinesList
           syncedIds={data.rows.filter((r) => r.status !== "missing_on_garmin").map((r) => r.hevy_routine_id)}
@@ -160,13 +155,12 @@ export default async function RoutinesPage() {
       </div>
 
       {data.rows.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface p-8 text-center">
+        <div className="empty-state">
           <p className="text-sm font-medium text-text-secondary">
             No routines synced yet.
           </p>
           <p className="mt-1 text-xs text-text-muted">
-            Routine → Garmin planned-workout sync runs from the pipeline; synced
-            routines will appear here.
+            Sync a routine from Hevy to schedule it on your Garmin.
           </p>
         </div>
       ) : (

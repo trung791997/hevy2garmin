@@ -17,7 +17,7 @@ function fmtInterval(m: number): string {
  * (DB-only) and the interval to /api/settings (auto_sync.interval_minutes) —
  * both editable in Settings too; this is the quick control.
  */
-export function AutoSyncToggle({ enabled, interval = 120 }: { enabled: boolean; interval?: number }) {
+export function AutoSyncToggle({ enabled, interval = 120, available = true }: { enabled: boolean; interval?: number; available?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +66,24 @@ export function AutoSyncToggle({ enabled, interval = 120 }: { enabled: boolean; 
     }
   }
 
+  // This control configures GitHub Actions on Vercel. A saved preference alone
+  // does not install a scheduler on a local Mac.
+  if (!available) {
+    return (
+      <div className="schedule-row">
+        <div>
+          <div className="text-text">Automatic sync</div>
+          <div className="text-text-muted">No background schedule configured. Sync when you’re ready.</div>
+        </div>
+        <a href={withBasePath("/settings")} className="text-link">Settings <span aria-hidden="true">↗</span></a>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+    <div className="schedule-row">
       <div className="flex-1">
-        <div className="text-sm font-medium text-text">Auto-sync</div>
+        <div className="text-sm font-medium text-text">GitHub Actions auto-sync</div>
         <div className="text-xs text-text-muted">
           {enabled
             ? `On — new workouts sync every ${fmtInterval(interval)}.`
@@ -101,6 +115,7 @@ export function AutoSyncToggle({ enabled, interval = 120 }: { enabled: boolean; 
         onClick={toggle}
         disabled={busy}
         aria-pressed={enabled}
+        aria-label={enabled ? "Disable GitHub Actions auto-sync" : "Enable GitHub Actions auto-sync"}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
           enabled ? "bg-teal/60" : "bg-surface-active"
         }`}

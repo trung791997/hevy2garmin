@@ -34,9 +34,9 @@ function StatusPill({ item }: { item: WorkoutItem }) {
   };
   if (item.kind === "terminal") {
     const s = terminal[item.state] ?? { cls: "bg-surface-active text-text-secondary", label: item.state };
-    return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
+    return <span className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>{s.label}</span>;
   }
-  return <span className="inline-block rounded-full bg-teal/15 px-2.5 py-0.5 text-xs font-medium text-teal">{item.state}</span>;
+  return <span className="inline-block rounded-md bg-teal/15 px-2.5 py-0.5 text-xs font-medium text-teal">{item.state}</span>;
 }
 
 function HrChart({ samples }: { samples: number[] }) {
@@ -70,7 +70,7 @@ function HrChart({ samples }: { samples: number[] }) {
 }
 
 const actionBtn =
-  "rounded-lg border border-border px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-active disabled:opacity-50";
+  "min-h-11 min-w-11 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-active disabled:opacity-50";
 
 /**
  * A workout row with an on-demand heart-rate chart and, for in-flight (pending)
@@ -288,10 +288,10 @@ export function WorkoutRow({
   } as const;
 
   return (
-    <li className={`px-4 py-3 ${item.kind === "terminal" ? "opacity-70" : ""}`}>
-      <div className="flex items-center justify-between gap-3">
+    <li className="workout-row px-4 py-4">
+      <div className="workout-row-heading flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-text">{item.title || "Untitled workout"}</div>
+          <div className="truncate text-base font-bold text-text">{item.title || "Untitled workout"}</div>
           <div className="mt-0.5 text-xs text-text-muted">
             {fmtDate(item.when)}
             {resynced && (
@@ -334,7 +334,7 @@ export function WorkoutRow({
             </div>
           )}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="workout-row-actions flex flex-wrap items-center justify-end gap-2">
           {canResolve && (
             <button type="button" onClick={() => setResolving((v) => !v)} className={actionBtn}>
               {resolving ? "Cancel" : "Resolve"}

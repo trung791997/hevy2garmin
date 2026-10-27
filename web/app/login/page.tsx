@@ -52,19 +52,24 @@ function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <h1 className="mb-1 text-2xl font-bold text-text">hevy2garmin</h1>
-      <p className="mb-6 text-sm text-text-secondary">Enter your dashboard password.</p>
+    <main className="login-page">
+      <div className="login-brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 7h14m-4-4 4 4-4 4M21 17H7m4-4-4 4 4 4" /></svg><span>hevy<span className="text-text-muted">2</span>garmin</span></div>
+      <h1>Sign in</h1>
+      <p className="mb-7 text-sm text-text-muted">Enter your dashboard password to continue.</p>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <div>
+        <label htmlFor="dashboard-password">Dashboard password</label>
         <input
+          id="dashboard-password"
           type="password"
+          autoComplete="current-password"
           data-testid="login-password"
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          className="rounded-lg border border-border bg-surface px-4 py-3 text-text outline-none focus:border-teal"
+          placeholder="Enter your password"
         />
+        </div>
         {error && (
           <p className="text-sm text-danger" role="alert">
             {error}
@@ -74,7 +79,7 @@ function LoginForm() {
           type="submit"
           data-testid="login-submit"
           disabled={loading || password.length === 0}
-          className="rounded-lg bg-teal px-4 py-3 font-medium text-black transition-opacity disabled:opacity-50"
+          className="login-submit"
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>

@@ -41,7 +41,7 @@ function extractTicket(raw: string): string | null {
   return t.startsWith("ST-") ? t : null;
 }
 
-export function ConnectGarmin({ connected, directLogin = false }: { connected: boolean; directLogin?: boolean }) {
+export function ConnectGarmin({ connected, directLogin = false, browserOnly = false }: { connected: boolean; directLogin?: boolean; browserOnly?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -186,11 +186,11 @@ export function ConnectGarmin({ connected, directLogin = false }: { connected: b
     "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text focus:border-teal focus:outline-none";
 
   // Mode 3: manual ticket-paste fallback
-  if (manual) {
+  if (browserOnly || manual) {
     return (
       <form onSubmit={submitTicket} className="space-y-3">
         <p className="text-xs text-text-muted">
-          Garmin needs you to sign in on its own page. Do these in order:
+          {connected ? "Garmin is connected. To refresh the session, sign in again on Garmin's site." : "Sign in on Garmin's own site, then paste the return URL below. Your Garmin password stays on Garmin's site."}
         </p>
         <ol className="ml-4 list-decimal space-y-1 text-xs text-text-secondary">
           <li>
@@ -202,8 +202,13 @@ export function ConnectGarmin({ connected, directLogin = false }: { connected: b
           <li>When it finishes, copy the full URL from the address bar.</li>
           <li>Paste it below and press Connect.</li>
         </ol>
+        {!directLogin && <p className="text-xs text-text-muted">The return ticket is exchanged through the app&apos;s Cloudflare sign-in service. Your Garmin password stays on Garmin&apos;s site.</p>}
+        <label htmlFor="garmin-ticket-url" className="block text-sm text-text-secondary">Garmin return URL</label>
         <input
+          id="garmin-ticket-url"
           type="text"
+          autoComplete="off"
+          spellCheck={false}
           value={ticketUrl}
           onChange={(e) => setTicketUrl(e.target.value)}
           placeholder="https://sso.garmin.com/sso/embed?ticket=ST-…"
@@ -218,15 +223,16 @@ export function ConnectGarmin({ connected, directLogin = false }: { connected: b
           >
             {busy ? "Connecting…" : "Connect"}
           </button>
-          <button
+          {!browserOnly && <button
             type="button"
             onClick={() => { setManual(false); setError(null); }}
             disabled={busy}
             className="text-xs text-text-muted underline hover:text-text-secondary disabled:opacity-50"
           >
             Back to password sign-in
-          </button>
+          </button>}
           {error && <span className="text-xs text-danger" role="alert">{error}</span>}
+          {okMsg && <span className="text-xs text-success" role="status">{okMsg}</span>}
         </div>
       </form>
     );

@@ -56,6 +56,10 @@ test.describe("dashboard smoke (no database, password auth)", () => {
     ];
 
     for (const [label, path] of destinations) {
+      const more = page.getByRole("button", { name: "More navigation", exact: true });
+      if (await more.isVisible() && ["Mappings", "History", "Settings", "Setup"].includes(label)) {
+        await more.click();
+      }
       // Not an exact name match: the mobile bar composes each link from an icon
       // span and a label span, so its accessible name is "≡ Workouts" while the
       // desktop bar's is "Workouts". Substring matching covers both, and no two
