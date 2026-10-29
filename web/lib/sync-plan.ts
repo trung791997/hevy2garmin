@@ -2,6 +2,7 @@ import {
   findMergeMatch,
   isWatchRecorded,
   mergeSearchRange,
+  toUtcDate,
   type CandidateActivity,
   type DedupWorkout,
 } from "hevy2garmin";
@@ -42,7 +43,9 @@ export function planSync(
                 (a as unknown as Record<string, unknown>).activityName ??
                   "Garmin watch activity",
               ),
-              start: a.startTimeGMT || a.startTimeLocal || "",
+              // Garmin's GMT string has no suffix. Send an explicit UTC
+              // timestamp so the browser displays it in the user's timezone.
+              start: toUtcDate(a.startTimeGMT || a.startTimeLocal || "")?.toISOString() ?? "",
               overlapPct: Math.round(match.overlapPct * 100),
               driftMinutes: Math.round(match.driftMinutes * 10) / 10,
               score: match.score,

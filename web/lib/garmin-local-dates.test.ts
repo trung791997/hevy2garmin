@@ -31,6 +31,7 @@ describe("Garmin local-date activity listing", () => {
     expect(plan.action).toBe("merge");
     expect(plan.selectedId).toBe(42);
     expect(plan.candidates[0].overlapPct).toBe(100);
+    expect(plan.candidates[0].start).toBe(`2026-10-29T${start}:11.000Z`);
     // Engine and preview can independently repeat the same lookup.
     await padded.activitiesByDate(range.start, range.end);
     expect(list).toHaveBeenLastCalledWith("2026-10-28", "2026-10-30");
