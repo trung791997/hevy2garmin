@@ -94,7 +94,7 @@ export function analyseHr(
 export function externalHrDevices(
   devices: Record<string, unknown>[],
 ): string[] {
-  const names = new Set<string>();
+  const detected: Array<{ label: string; index: unknown; identified: boolean }> = [];
   for (const d of devices) {
     const source = String(d.sourceType ?? "")
       .toLowerCase()
@@ -111,7 +111,14 @@ export function externalHrDevices(
       ].includes(source)
     )
       continue;
-    const name = String(d.productName || d.garminProduct || d.descriptor || "")
+    const manufacturer = String(d.manufacturer ?? "").toLowerCase();
+    const garmin = manufacturer === "garmin" || manufacturer === "1";
+    // Garmin Connect identifies 4607 as HRM 600; the current FIT SDK leaves
+    // this product numeric. CIRQA's product is present in the SDK profile.
+    const product = Number(d.product ?? d.garminProduct);
+    const model = garmin ? ({ 4607: "Garmin HRM 600", 5019: "Garmin CIRQA" } as Record<number, string>)[product] : undefined;
+    const profileName = typeof d.garminProduct === "string" && !/^\d+$/.test(d.garminProduct) ? d.garminProduct : "";
+    const name = String(d.productName || profileName || d.descriptor || "")
       .replace(/[^\p{L}\p{N}\s._-]/gu, "")
       .slice(0, 80);
     const kind = String(
@@ -123,15 +130,18 @@ export function externalHrDevices(
       (type === "120" && ["0", "1", "ant", "antplus"].includes(source)) ||
       (type === "1" &&
         ["3", "bluetooth", "bluetoothlowenergy"].includes(source));
-    if (!/hrm|cirqa|heart.?rate/i.test(name) && !hrType) continue;
-    const label = /hrm.?600/i.test(name)
+    if (!model && !/hrm|cirqa|heart.?rate/i.test(name) && !hrType) continue;
+    const label = model ?? (/hrm.?600/i.test(name)
       ? "Garmin HRM 600"
       : /cirqa/i.test(name)
         ? "Garmin CIRQA"
-        : name || "External HR monitor (model not identified)";
-    names.add(label);
+        : name || "External HR monitor (model not identified)");
+    detected.push({ label, index: d.deviceIndex, identified: !!(model || name) });
   }
-  return [...names];
+  // A connection event may contain only a device index and HR type. Resolve
+  // it against the named device-info entry rather than listing a second HRM.
+  const knownIndices = new Set(detected.filter((d) => d.identified && d.index != null).map((d) => d.index));
+  return [...new Set(detected.filter((d) => d.identified || d.index == null || !knownIndices.has(d.index)).map((d) => d.label))];
 }
 
 export function readHrRecording(

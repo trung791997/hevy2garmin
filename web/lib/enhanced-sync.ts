@@ -1,7 +1,6 @@
 import {
   listCandidates,
   generateFit,
-  generateDescription,
   dailyHrToPoints,
   type SyncDeps,
   type SyncOneOptions,
@@ -16,6 +15,7 @@ import { analyseHr, readHrRecording, type HrRecording } from "./hr-analysis";
 import { mergeSearchRange, planSync, type SyncPlan } from "./sync-plan";
 import { saveOriginalBackup } from "./replacement-guard";
 import { writeHevyHrNote } from "./hevy-hr-note";
+import { workoutDescription } from "./workout-description";
 
 export interface EnhancedOptions extends SyncOneOptions {
   selectedActivityId?: number;
@@ -230,17 +230,11 @@ export async function runEnhancedSync(
   };
   const wrappedGateway: GarminGateway = {
     ...gateway,
-    describe: async (id, description) => {
-      const fit = actualFit();
+    describe: async (id) => {
+      const fit = actualFit() ?? generateFit(workout as unknown as Parameters<typeof generateFit>[0], null, { profile: settings.profile });
       return gateway.describe(
         id,
-        fit
-          ? generateDescription(
-              workout as unknown as Parameters<typeof generateDescription>[0],
-              fit.calories,
-              fit.avg_hr,
-            )
-          : description,
+        workoutDescription(workout as unknown as Record<string, unknown>, fit.calories, fit.avg_hr, settings.weightUnit),
       );
     },
     activityFit: async (id) =>

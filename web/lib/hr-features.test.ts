@@ -167,6 +167,20 @@ describe("external HR recordings", () => {
       ]),
     ).toEqual(["Garmin CIRQA", "Garmin HRM 600"]);
   });
+  it("resolves HRM 600's numeric product and its repeated connection event to one monitor", () => {
+    expect(externalHrDevices([
+      { manufacturer: "garmin", product: 4607, garminProduct: 4607, sourceType: "bluetoothLowEnergy", bleDeviceType: "heartRate", deviceIndex: 2 },
+      { manufacturer: "garmin", product: 4607, sourceType: "bluetoothLowEnergy", bleDeviceType: "heartRate", deviceIndex: 3 },
+      { sourceType: "antplus", antplusDeviceType: "heartRate", deviceIndex: 2 },
+    ])).toEqual(["Garmin HRM 600"]);
+  });
+  it("does not use Garmin's product IDs for other manufacturers or hide a distinct unknown monitor", () => {
+    expect(externalHrDevices([
+      { manufacturer: "garmin", product: 4607, sourceType: "bluetoothLowEnergy", bleDeviceType: "heartRate", deviceIndex: 2 },
+      { manufacturer: "other", product: 4607, sourceType: "antplus", antplusDeviceType: "heartRate", deviceIndex: 4 },
+    ])).toEqual(["Garmin HRM 600", "External HR monitor (model not identified)"]);
+    expect(externalHrDevices([{ manufacturer: 1, product: 5019, sourceType: "bluetoothLowEnergy", bleDeviceType: "heartRate" }])).toEqual(["Garmin CIRQA"]);
+  });
   it("measures missing periods instead of stretching sparse data across the session", () => {
     const meta = analyseHr(
       [
@@ -350,6 +364,16 @@ describe("watch matching and preview", () => {
     );
     expect(result.status).toBe("needs_review");
     expect(g.upload).not.toHaveBeenCalled();
+  });
+  it("writes pounds in the note while keeping structured Garmin set weights in grams", async () => {
+    const g = gateway();
+    const result = await runEnhancedSync(deps(g), database().sql,
+      { ...DEFAULT_SYNC_SETTINGS, weightUnit: "lb", hevyHrNotes: false },
+      { dryRun: false, merge: DEFAULT_SYNC_SETTINGS.merge }, syncOneWorkout);
+    expect(result.status).toBe("synced");
+    expect(g.describe).toHaveBeenCalledWith(101, expect.stringContaining("110.2 lbs × 5"));
+    expect(g.putExerciseSets).toHaveBeenCalledWith(101, expect.objectContaining({ exerciseSets: expect.arrayContaining([expect.objectContaining({ setType: "ACTIVE", weight: 50000 })]) }));
+    expect(workout.exercises[0].sets[0].weight_kg).toBe(50);
   });
 });
 

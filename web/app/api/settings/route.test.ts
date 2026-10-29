@@ -41,6 +41,16 @@ beforeEach(() => {
 });
 
 describe("POST /api/settings — extended config surface", () => {
+  it.each(["lb", "kg"])("saves %s as a separate display preference", async (unit) => {
+    const res = await POST(req({ display_units: { weight: unit } }));
+    expect(res.status).toBe(200);
+    expect(saved("display_units")).toEqual({ weight: unit });
+    expect(saved("user_profile")).toBeUndefined();
+  });
+  it("rejects an unsupported weight unit without changing stored settings", async () => {
+    expect((await POST(req({ display_units: { weight: "stones" } }))).status).toBe(400);
+    expect(writes).toEqual([]);
+  });
   it("saves profile fields with validation (sex whitelist, vo2max)", async () => {
     const res = await POST(
       req({ user_profile: { birth_year: 1994, sex: "FEMALE", vo2max: 52.34, timezone: " Europe/Athens " } }),
