@@ -35,6 +35,7 @@ import { parseStartDate, withinSyncWindow } from "./sync-window";
 import type { Sql } from "./pending-store";
 import { protectReplacements } from "./replacement-guard";
 import { runEnhancedSync, type EnhancedOptions } from "./enhanced-sync";
+import { withGarminLocalDates } from "./garmin-local-dates";
 
 export type {
   CandidateWorkout,
@@ -65,7 +66,7 @@ export function buildSyncDeps(sql: Sql, options: SyncOneOptions = {}): SyncDeps 
   return {
     store: postgresSyncStore(sql),
     // Built once, lazily: the dry-run/no-candidate paths never log in to Garmin.
-    gateway: () => (gateway ??= clientFactory().then(garminGateway).then((g) => protectReplacements(sql, g))),
+    gateway: () => (gateway ??= clientFactory().then(garminGateway).then(withGarminLocalDates).then((g) => protectReplacements(sql, g))),
     fetchWorkouts: async () => {
       const all = await fetchWorkouts();
       // Applied HERE, before the engine sees the list, so listCandidates and
