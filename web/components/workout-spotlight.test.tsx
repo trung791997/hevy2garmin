@@ -34,6 +34,13 @@ describe("workout spotlight presentation", () => {
     expect(html).not.toContain("Full Body");
     expect(html).not.toContain("100%");
   });
+  it("does not identify a generic optical-device label as a confirmed external monitor", () => {
+    const generic = { ...data, recording: { ...data.recording, devices: ["oHR"] } };
+    const html = renderToStaticMarkup(<WorkoutSpotlight initialData={generic} />);
+    expect(html).toContain("RECORDED DEVICE LABEL");
+    expect(html).toContain("does not confirm an external monitor");
+    expect(html).not.toContain("EXTERNAL MONITOR DETECTED");
+  });
   it("leaves actual recording gaps in the plotted line", () => {
     const segments = traceSegments(data.recording.points, 5);
     expect(segments).toHaveLength(2);
