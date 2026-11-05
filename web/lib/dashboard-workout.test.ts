@@ -53,12 +53,12 @@ describe("evidence-based sync receipt", () => {
   });
 });
 
-function sqlFixture({ empty = false, fail = false } = {}): Sql {
+function sqlFixture({ empty = false, fail = false, backupId = "sample" } = {}): Sql {
   return (async (strings: TemplateStringsArray) => {
     const query = strings.join("?");
     if (fail) throw Object.assign(new Error("Database unavailable"), { code: "ECONNREFUSED" });
     if (query.includes("FROM synced_workouts")) return empty ? [] : [row];
-    if (query.includes("starts_with")) return [{ value: { workout } }];
+    if (query.includes("starts_with")) return [{ value: { workout: { ...workout, id: backupId } } }];
     return [{ value: { weight: "lb" } }];
   }) as unknown as Sql;
 }
@@ -72,6 +72,9 @@ describe("read-only featured workout loader", () => {
   });
   it("ignores a mismatched Hevy response rather than attributing another workout's details", async () => {
     expect(await loadFeaturedWorkout(sqlFixture(), async () => ({ ...workout, id: "different" }))).toMatchObject({ detailSource: "saved", id: "sample" });
+  });
+  it("does not use an incorrectly associated saved workout either", async () => {
+    expect(await loadFeaturedWorkout(sqlFixture({ backupId: "different" }), async () => null)).toMatchObject({ detailSource: null, totalSets: null, id: "sample" });
   });
   it("does not contact Hevy on an empty account and propagates real database outages", async () => {
     const read = vi.fn(async () => workout);

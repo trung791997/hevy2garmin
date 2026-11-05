@@ -216,7 +216,7 @@ export default async function DashboardPage() {
     <main className="dashboard-page mx-auto max-w-5xl px-4 py-8 md:px-6">
       <header className="page-heading">
         <h1>Dashboard</h1>
-        <a className="text-link" href={withBasePath("/setup")}>{ready ? "Connections" : "Connect accounts"} <span aria-hidden="true">↗</span></a>
+        <div className="dashboard-header-actions"><a className="quiet-button" href={withBasePath("/setup")}>{ready ? "Connections" : "Connect accounts"}</a>{ready && <a className="dashboard-sync-shortcut" href="#workout-sync">Sync <span aria-hidden="true">↓</span></a>}</div>
       </header>
 
       <UpdateBanner />
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
       </dl>
 
       {!ready && data.dbConfigured && <p className="mb-5 text-sm text-warm">Connect {!data.hevyConnected && !data.garminConnected ? "Hevy and Garmin" : !data.hevyConnected ? "Hevy" : "Garmin"} to start syncing.</p>}
-      <section className="sync-section" aria-label="Workout sync">
+      <section id="workout-sync" className="sync-section" aria-label="Workout sync">
         <SyncLoop ready={ready} />
         <details className="sync-options">
           <summary><span className="sync-options-label"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 17h16" /><circle cx="8" cy="7" r="2" /><circle cx="16" cy="17" r="2" /></svg>More sync options</span><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg></summary>

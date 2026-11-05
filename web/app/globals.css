@@ -258,6 +258,10 @@ summary::-webkit-details-marker { display: none; }
 }
 /* AMOLED content surfaces: true black, with light confined to edges and controls. */
 .workout-feature { margin: 0 0 32px; }
+.dashboard-header-actions { display: flex; align-items: center; gap: 8px; }
+.dashboard-sync-shortcut { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 9px 14px; color: #ff9a67; border: 1px solid #ff9a6747; border-radius: 12px; font-size: 12px; font-weight: 650; }
+.dashboard-sync-shortcut:hover { background: #ff9a6712; }
+#workout-sync { scroll-margin-top: 100px; }
 .workout-spotlight, .insight-card { position: relative; background: #000; border: 1px solid #292929; border-radius: 20px; box-shadow: inset 0 1px 0 #ffffff09; }
 .workout-spotlight { overflow: hidden; padding: 28px; border-color: #513325; }
 .workout-spotlight::before { content: ""; position: absolute; height: 1px; top: 0; left: 24px; right: 24px; background: linear-gradient(90deg, transparent, #ff995b80, transparent); pointer-events: none; }
@@ -338,7 +342,12 @@ summary::-webkit-details-marker { display: none; }
 .trace-reading small { color: var(--color-text-faint); font-size: 10px; font-weight: 450; }
 .trace-axis { display: flex; justify-content: space-between; font-size: 9px; color: var(--color-text-faint); }
 .trace-slider { display: block; font-size: 10px; color: var(--color-text-faint); margin-top: 14px; }
-.trace-slider input { display: block; width: 100%; height: 24px; accent-color: #ff9a67; margin-top: 3px; cursor: pointer; }
+.trace-slider input { display: block; width: 100%; height: 36px; padding: 0; border: 0; border-radius: 0; appearance: none; background: transparent; accent-color: #ff9a67; margin-top: 3px; cursor: pointer; }
+.trace-slider input::-moz-range-track { height: 2px; background: #303030; }
+.trace-slider input::-moz-range-progress { height: 2px; background: #ff9a67; }
+.trace-slider input::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid #000; border-radius: 50%; background: #ff9a67; box-shadow: 0 0 0 1px #ff9a6766; }
+.trace-slider input::-webkit-slider-runnable-track { height: 2px; background: #303030; }
+.trace-slider input::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; margin-top: -6px; border: 2px solid #000; border-radius: 50%; background: #ff9a67; box-shadow: 0 0 0 1px #ff9a6766; }
 .trace-empty { display: flex; flex-direction: column; justify-content: center; min-height: 110px; border-bottom: 1px dashed #292929; color: var(--color-text-muted); font-size: 12px; }
 .trace-empty > p { max-width: 30ch; margin-top: 6px; color: var(--color-text-faint); font-size: 10px; }
 .spotlight-preview .trace-empty { min-height: 80px; font-size: 10px; }
@@ -348,7 +357,9 @@ summary::-webkit-details-marker { display: none; }
 .recording-footer > p { color: var(--color-text-faint); font-size: 9px; max-width: 18ch; }
 .refresh-explanation { margin-top: 10px; color: var(--color-text-faint); font-size: 9px; }
 .recording-notice { margin-top: 12px; color: var(--color-success); font-size: 12px; }
-.spotlight-loading, .spotlight-empty { min-height: 225px; }
+.spotlight-loading { min-height: 360px; }
+.insight-loading { min-height: 460px; }
+.spotlight-empty { min-height: 225px; }
 .spotlight-loading > p:nth-child(2), .spotlight-empty > p { color: var(--color-text-muted); font-size: 13px; margin-top: 18px; max-width: 52ch; }
 .spotlight-empty h2 { font-size: 26px; letter-spacing: -.04em; line-height: 1.25; margin-top: 20px; }
 .spotlight-empty .quiet-button { margin-top: 16px; }
@@ -364,6 +375,7 @@ summary::-webkit-details-marker { display: none; }
   .spotlight-preview strong small { display: inline; margin-left: 3px; }
   .spotlight-preview .hr-trace-compact > svg { height: 65px; }
   .spotlight-metrics > div { padding: 0 14px; }
+  .spotlight-metrics { grid-template-columns: .85fr .7fr 1.35fr; }
   .spotlight-metrics dd { font-size: 25px; }
   .spotlight-metrics > div:nth-child(2) dd small { display: block; margin-top: 5px; font-size: 9px; }
   .spotlight-footer { align-items: flex-start; flex-direction: column; gap: 12px; }
@@ -378,6 +390,8 @@ summary::-webkit-details-marker { display: none; }
   .recording-caveat, .refresh-explanation, .recording-footer > p { font-size: 10px; }
 }
 @media (max-width: 399px) {
+  .dashboard-header-actions .quiet-button { padding: 8px 10px; font-size: 10px; }
+  .dashboard-sync-shortcut { padding: 8px 10px; font-size: 11px; }
   .workout-spotlight, .insight-card { padding: 18px; }
   .spotlight-content { grid-template-columns: minmax(0,1fr); margin: 22px 0; }
   .spotlight-preview { grid-template-columns: 90px minmax(0,1fr); gap: 10px; }

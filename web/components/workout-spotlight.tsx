@@ -28,6 +28,7 @@ export function WorkoutSpotlight({ refreshKey = "", initialData }: { refreshKey?
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticePending, setNoticePending] = useState(false);
 
   async function read(signal?: AbortSignal) {
     const response = await fetch(withBasePath("/api/dashboard/workout"), { signal, cache: "no-store" });
@@ -38,7 +39,10 @@ export function WorkoutSpotlight({ refreshKey = "", initialData }: { refreshKey?
   useEffect(() => {
     if (initialData !== undefined) return;
     const controller = new AbortController();
-    read(controller.signal).then(data => { setWorkout(data); setError(""); }).catch(cause => {
+    read(controller.signal).then(data => {
+      if (controller.signal.aborted) return;
+      setWorkout(data); setError(""); setNotice(""); setNoticePending(false);
+    }).catch(cause => {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Your latest workout could not be loaded.");
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -57,12 +61,13 @@ export function WorkoutSpotlight({ refreshKey = "", initialData }: { refreshKey?
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "HR could not be refreshed.");
       setNotice(body.message ?? "Recording refreshed.");
+      setNoticePending(body.pending === true);
       setWorkout(await read());
     } catch (cause) { setError(cause instanceof Error ? cause.message : "HR could not be refreshed."); }
     finally { setRefreshing(false); }
   }
 
-  if (loading && !workout) return <section className="workout-spotlight spotlight-loading" aria-label="Latest workout" aria-busy="true"><p className="eyebrow">YOUR LATEST WORKOUT</p><p>Loading your workout and recording…</p><div className="spotlight-skeleton" /></section>;
+  if (loading && !workout) return <section className="workout-feature" aria-label="Latest workout" aria-busy="true"><div className="workout-spotlight spotlight-loading"><p className="eyebrow">YOUR LATEST WORKOUT</p><p>Loading your workout and recording…</p><div className="spotlight-skeleton" /></div><div className="workout-insights" aria-hidden="true"><div className="insight-card insight-loading"><span className="eyebrow">SYNC RECEIPT</span><div className="spotlight-skeleton" /></div><div className="insight-card insight-loading"><span className="eyebrow">HEART-RATE RECORDING</span><div className="spotlight-skeleton" /></div></div></section>;
   if (!workout) return <section className="workout-spotlight spotlight-empty"><span className="eyebrow">YOUR NEXT SESSION</span><h2>{error ? "Workout unavailable" : "Make your next workout count."}</h2><p role={error ? "alert" : undefined}>{error || "Once your first workout syncs, its summary, sync receipt, and heart-rate recording will appear here."}</p>{error && <button type="button" className="quiet-button" onClick={reload}>Try again</button>}</section>;
 
   const recording = workout.recording;
@@ -84,13 +89,13 @@ export function WorkoutSpotlight({ refreshKey = "", initialData }: { refreshKey?
 
         <article id="recording-quality" className="recording-quality insight-card" aria-labelledby="recording-title"><div className="insight-heading"><div><span className="eyebrow">RECORDING DETAILS</span><h2 id="recording-title">Heart-rate recording</h2></div><span className="recording-heart" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg></span></div>
           <div className="recording-source"><span className="source-dot" /><span>{source}</span></div>
-          <div className="recording-device"><span>EXTERNAL MONITOR DETECTED</span><strong>{recording.devices.length ? recording.devices.join(" · ") : "Not identified"}</strong></div>
+          <div className="recording-device"><span>EXTERNAL MONITOR{recording.devices.length ? " DETECTED" : ""}</span><strong>{recording.devices.length ? recording.devices.join(" · ") : "Not identified"}</strong></div>
           <dl className="recording-metrics"><div><dt>Coverage</dt><dd>{recording.coveragePct === null ? "—" : `${integer(recording.coveragePct)}%`}</dd></div><div><dt>Readings</dt><dd>{integer(recording.sampleCount)}</dd></div><div><dt>Longest gap</dt><dd>{recording.longestGapS === null ? "—" : elapsed(recording.longestGapS)}</dd></div></dl>
           <HrTrace points={recording.points} durationS={recording.durationS} medianIntervalS={recording.medianIntervalS} />
           {recording.sampleCount > 0 && recording.points.length === 0 && <p className="recording-caveat">Saved readings have no timestamps. Refresh to load a timed chart.</p>}
-          <p className="recording-caveat">{recording.devices.length ? "Device metadata confirms a connected monitor. Individual readings may switch between sensors." : "Garmin has not identified an external monitor in this recording."}</p>
+          <p className="recording-caveat">{recording.devices.length ? "Device metadata confirms a connected monitor. Individual readings may switch between sensors." : "No external monitor is identified in the saved metadata."}</p>
           <div className="recording-footer"><p>{recording.cachedAt ? `Recording saved ${workoutDate(recording.cachedAt)}` : "No cached recording yet"}</p><button type="button" className="quiet-button" disabled={refreshing} onClick={refreshHr}>{refreshing ? "Refreshing…" : "Refresh HR & note"}</button></div><p className="refresh-explanation">Refresh checks Garmin and updates your managed Hevy HR note when enabled.</p>
-          {(notice || error) && <p className={error ? "spotlight-attention" : "recording-notice"} role={error ? "alert" : "status"}>{error || notice}</p>}
+          {(notice || error) && <p className={error || noticePending ? "spotlight-attention" : "recording-notice"} role={error ? "alert" : "status"}>{error || notice}</p>}
         </article>
       </div>
     </section>

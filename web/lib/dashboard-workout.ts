@@ -6,7 +6,7 @@ import { weightUnit, type WeightUnit } from "./weight-units";
 
 type Obj = Record<string, unknown>;
 const object = (value: unknown): Obj => value && typeof value === "object" && !Array.isArray(value) ? value as Obj : {};
-const finite = (value: unknown): number | null => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null;
+const finite = (value: unknown): number | null => (typeof value === "number" || typeof value === "string" && !!value.trim()) && Number.isFinite(Number(value)) ? Number(value) : null;
 const text = (value: unknown): string | null => typeof value === "string" && value.trim() ? value : null;
 const timestamp = (value: unknown): string | null => {
   if (!(typeof value === "string" || value instanceof Date)) return null;
@@ -156,7 +156,8 @@ export async function loadFeaturedWorkout(sql: Sql, read: (id: string) => Promis
     read(String(row.hevy_id)).catch(() => null),
     sql`SELECT value FROM app_cache WHERE starts_with(key, ${`hevy_note_backup_${row.hevy_id}_`}) ORDER BY updated_at DESC LIMIT 1`.catch(ifNoTable([])),
   ]);
-  const saved = object(backups[0]?.value).workout;
+  const savedValue = object(backups[0]?.value).workout;
+  const saved = String(object(savedValue).id ?? "") === String(row.hevy_id) ? savedValue : null;
   const live = object(current);
   const useLive = String(live.id ?? "") === String(row.hevy_id) && Array.isArray(live.exercises);
   return featuredWorkout(row, useLive ? live : saved, weightUnit(object(preferences[0]?.value).weight), useLive ? "hevy" : saved ? "saved" : null);
