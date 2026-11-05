@@ -467,6 +467,7 @@ summary::-webkit-details-marker { display: none; }
 .comparison-emblem { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border: 1px solid #4c2b1c; border-radius: 50%; color: var(--color-teal-light); font-size: 20px; background: #120c08; }
 .comparison-session-name { font-size: 14px; font-weight: 600; margin-top: 22px; overflow-wrap: anywhere; }
 .comparison-baseline { color: var(--color-text-muted); font-size: 11px; line-height: 1.7; margin-top: 5px; }
+.comparison-lineup-note { color: var(--color-warm); font-size: 11px; line-height: 1.7; margin-top: 12px; }
 .comparison-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin: 20px 0 14px; border-top: 1px solid var(--color-border-subtle); }
 .comparison-metric { display: flex; min-width: 0; flex-direction: column; padding: 20px 0 18px; border-bottom: 1px solid var(--color-border-subtle); animation: session-reveal .25s ease-out; }
 .comparison-metric:nth-child(odd) { padding-right: 14px; }

@@ -45,11 +45,11 @@ export function monthCells(month: string): Array<string | null> {
 
 const normalizedTitle = (title: string) => title.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 
-/** Require both the same name and exercise lineup; never compare unrelated sessions. */
+/** Compare the previous named session; the UI discloses changed or unknown lineups. */
 export function previousSession(current: TrainingSession, sessions: TrainingSession[]): TrainingSession | null {
-  if (!current.exerciseKey) return null;
+  if (!normalizedTitle(current.title) || normalizedTitle(current.title) === "untitled workout") return null;
   return sessions.filter(s => s.id !== current.id && Date.parse(s.startedAt) < Date.parse(current.startedAt)
-    && normalizedTitle(s.title) === normalizedTitle(current.title) && s.exerciseKey === current.exerciseKey)
+    && normalizedTitle(s.title) === normalizedTitle(current.title))
     .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0] ?? null;
 }
 

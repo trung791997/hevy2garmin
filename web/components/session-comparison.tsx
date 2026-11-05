@@ -15,10 +15,13 @@ export function SessionComparison({ current, sessions, unit, timeZone, hasMore }
   const titleId = useId();
   const previous = previousSession(current, sessions);
   const metrics = comparisonMetrics(current, previous, unit);
+  const lineupKnown = !!current.exerciseKey && !!previous?.exerciseKey;
+  const lineupChanged = lineupKnown && current.exerciseKey !== previous?.exerciseKey;
   return <section className="session-comparison" aria-labelledby={titleId}>
     <div className="insight-heading"><div><span className="eyebrow">SESSION COMPARISON</span><h3 id={titleId}>{previous ? "You vs. last time" : "Your starting point"}</h3></div><span className="comparison-emblem" aria-hidden="true">↗</span></div>
     <p className="comparison-session-name">{current.title}</p>
     <p className="comparison-baseline">{sessionDate(current.startedAt, timeZone)}{previous ? ` vs. ${sessionDate(previous.startedAt, timeZone)}` : " · No earlier matching session loaded"}</p>
+    {previous && (lineupChanged || !lineupKnown) && <p className="comparison-lineup-note">{lineupChanged ? "Exercise lineup changed. Total volume includes different exercises." : "Exercise lineup could not be verified for both sessions."}</p>}
     <div className="comparison-metrics" key={`${current.id}:${previous?.id ?? "none"}`}>
       {metrics.map(metric => <div className={`comparison-metric metric-${metric.id}`} key={metric.id}>
         <span className="comparison-label">{metric.label}</span>
@@ -27,6 +30,6 @@ export function SessionComparison({ current, sessions, unit, timeZone, hasMore }
           <div className="comparison-bars" aria-hidden="true"><span style={{ width: `${metric.previous === null ? 0 : Math.max(2, metric.previous / Math.max(metric.current ?? 0, metric.previous, 1) * 100)}%` }} /><span style={{ width: `${metric.current === null ? 0 : Math.max(2, metric.current / Math.max(metric.current, metric.previous ?? 0, 1) * 100)}%` }} /></div></> : <span className="comparison-before">No baseline yet</span>}
       </div>)}
     </div>
-    <p className="comparison-caveat">{previous ? "Matched by workout name and exercise lineup. " : `A baseline needs the same workout name and exercise lineup.${hasMore ? " Load older sessions to look further back." : ""} `}Volume is logged weight × reps, including warm-ups. Average HR uses saved sync data. HR and duration changes aren’t performance scores.</p>
+    <p className="comparison-caveat">{previous ? `Matched by workout name.${lineupKnown && !lineupChanged ? " Same exercise lineup." : ""} ` : `A baseline needs an earlier workout with the same name.${hasMore ? " Load older sessions to look further back." : ""} `}Volume is logged weight × reps, including warm-ups. Average HR uses saved sync data. HR and duration changes aren’t performance scores.</p>
   </section>;
 }

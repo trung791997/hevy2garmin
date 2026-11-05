@@ -27,6 +27,14 @@ describe("training history presentation", () => {
     expect(html).toContain("Load older sessions to look further back");
     expect(html).not.toContain("comparison-bars");
   });
+  it("discloses changed or unverified exercises when comparing the same named workout", () => {
+    const changed = renderToStaticMarkup(<SessionComparison current={current} sessions={[current, { ...previous, exerciseKey: "different" }]} unit="lb" timeZone="America/Chicago" hasMore={false} />);
+    expect(changed).toContain("Exercise lineup changed. Total volume includes different exercises.");
+    expect(changed).toContain("You vs. last time");
+    const unknown = renderToStaticMarkup(<SessionComparison current={current} sessions={[current, { ...previous, exerciseKey: null }]} unit="lb" timeZone="America/Chicago" hasMore={false} />);
+    expect(unknown).toContain("Exercise lineup could not be verified for both sessions");
+    expect(unknown).not.toContain("Same exercise lineup");
+  });
   it("shows a useful connection state rather than zero-data metrics", () => {
     const html = renderToStaticMarkup(<WorkoutCalendar initialData={{ ...history, available: false, sessions: [] }} />);
     expect(html).toContain("Connect Hevy");

@@ -29,14 +29,15 @@ describe("local training calendar", () => {
 
 describe("session comparisons", () => {
   const current = session("current", "2026-11-05T12:00:00Z");
-  it("selects the nearest strictly earlier session with the same name and lineup", () => {
+  it("selects the nearest strictly earlier session with the same name", () => {
     const previous = session("previous", "2026-11-01T12:00:00Z", { title: " full   BODY " });
     const sessions = [session("old", "2026-10-01T12:00:00Z"), current, session("future", "2026-11-06T12:00:00Z"),
-      session("wrong-lineup", "2026-11-04T12:00:00Z", { exerciseKey: '["id:curl"]' }),
       session("wrong-title", "2026-11-04T12:00:00Z", { title: "Leg day" }), previous];
     expect(previousSession(current, sessions)?.id).toBe("previous");
-    expect(previousSession({ ...current, exerciseKey: null }, sessions)).toBeNull();
+    expect(previousSession({ ...current, title: "Untitled workout" }, sessions)).toBeNull();
     expect(previousSession(current, [current])).toBeNull();
+    const changed = session("changed-lineup", "2026-11-04T12:00:00Z", { exerciseKey: '["id:curl"]' });
+    expect(previousSession(current, [...sessions, changed])?.id).toBe("changed-lineup");
   });
   it("converts canonical kg for both sessions before calculating imperial deltas", () => {
     const before = session("before", "2026-11-01T12:00:00Z", { volumeKg: 500, durationS: 3000, totalSets: 16, avgHr: 110 });
