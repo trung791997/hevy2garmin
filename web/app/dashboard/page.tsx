@@ -13,6 +13,7 @@ import { PipelineDiagram } from "@/components/pipeline-diagram";
 import { HEVY_TO_GARMIN } from "hevy2garmin";
 import { withBasePath } from "@/lib/base-path";
 import { UpdateBanner } from "@/components/update-banner";
+import { WorkoutSpotlight } from "@/components/workout-spotlight";
 
 // Queries the live hevy2garmin Postgres per request — never at build time.
 export const dynamic = "force-dynamic";
@@ -225,6 +226,8 @@ export default async function DashboardPage() {
         <ConnectionStatus label="Hevy" connected={data.hevyConnected} />
         <ConnectionStatus label="Garmin Connect" connected={data.garminConnected} />
       </section>
+
+      {data.dbConfigured && <WorkoutSpotlight refreshKey={`${data.recent[0]?.hevy_id ?? ""}:${data.recent[0]?.synced_at ?? ""}`} />}
 
       <dl className="overview-totals" aria-label="Workout totals">
         <div><dt>On Garmin</dt><dd>{data.totalSynced}</dd></div>

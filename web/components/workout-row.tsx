@@ -243,7 +243,7 @@ export function WorkoutRow({
   } as const;
 
   return (
-    <li className="workout-row px-4 py-4">
+    <li id={`workout-${item.hevy_id}`} className="workout-row px-4 py-4">
       <div className="workout-row-heading flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-base font-bold text-text">{item.title || "Untitled workout"}</div>
