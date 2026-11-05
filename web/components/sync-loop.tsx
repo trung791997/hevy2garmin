@@ -105,7 +105,7 @@ export function SyncLoop({ ready }: { ready: boolean }) {
   const onGarmin = state.total > 0 ? state.total - state.remaining : state.synced;
 
   return (
-    <div className="sync-primary" aria-busy={running}>
+    <div className={`sync-primary${!running && state.done && !state.errorKind && state.synced > 0 ? " sync-completed" : ""}`} aria-busy={running}>
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
           <h2 className="text-lg font-semibold text-text">Sync workouts</h2>

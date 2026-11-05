@@ -14,6 +14,7 @@ import { HEVY_TO_GARMIN } from "hevy2garmin";
 import { withBasePath } from "@/lib/base-path";
 import { UpdateBanner } from "@/components/update-banner";
 import { WorkoutSpotlight } from "@/components/workout-spotlight";
+import { WorkoutCalendar } from "@/components/workout-calendar";
 
 // Queries the live hevy2garmin Postgres per request — never at build time.
 export const dynamic = "force-dynamic";
@@ -236,6 +237,8 @@ export default async function DashboardPage() {
       </dl>
 
       {!ready && data.dbConfigured && <p className="mb-5 text-sm text-warm">Connect {!data.hevyConnected && !data.garminConnected ? "Hevy and Garmin" : !data.hevyConnected ? "Hevy" : "Garmin"} to start syncing.</p>}
+      {data.dbConfigured && <WorkoutCalendar refreshKey={`${data.recent[0]?.hevy_id ?? ""}:${data.recent[0]?.synced_at ?? ""}`} />}
+
       <section id="workout-sync" className="sync-section" aria-label="Workout sync">
         <SyncLoop ready={ready} />
         <details className="sync-options">

@@ -96,7 +96,7 @@ export function WorkoutSpotlight({ refreshKey = "", initialData }: { refreshKey?
           {recording.sampleCount > 0 && recording.points.length === 0 && <p className="recording-caveat">Saved readings have no timestamps. Refresh to load a timed chart.</p>}
           <p className="recording-caveat">{identifiedExternal ? "Device metadata identifies a connected monitor. Individual readings may switch between sensors." : recording.devices.length ? "Garmin saved this device label. It does not confirm an external monitor or the source of individual readings." : "No external monitor is identified in the saved metadata."}</p>
           <div className="recording-footer"><p>{recording.cachedAt ? `Recording saved ${workoutDate(recording.cachedAt)}` : "No cached recording yet"}</p><button type="button" className="quiet-button" disabled={refreshing} onClick={refreshHr}>{refreshing ? "Refreshing…" : "Refresh HR & note"}</button></div><p className="refresh-explanation">Refresh checks Garmin and updates your managed Hevy HR note when enabled.</p>
-          {(notice || error) && <p className={error || noticePending ? "spotlight-attention" : "recording-notice"} role={error ? "alert" : "status"}>{error || notice}</p>}
+          {(notice || error) && <p className={error || noticePending ? "spotlight-attention" : "recording-notice recording-success"} role={error ? "alert" : "status"}>{!error && !noticePending && <span className="success-check" aria-hidden="true">✓</span>}{error || notice}</p>}
         </article>
       </div>
     </section>
