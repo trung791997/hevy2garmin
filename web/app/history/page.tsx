@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import Link from "next/link";
 import { DatabaseDownPage } from "@/components/database-down";
 import { ifNoTable } from "@/lib/missing-table";
@@ -81,7 +82,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -111,7 +112,7 @@ function StatusPill({ status }: { status: string }) {
   };
   const cls = styles[status] ?? "bg-surface-active text-text-secondary";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-medium ${cls}`}>
       <svg
         width="11"
         height="11"

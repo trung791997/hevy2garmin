@@ -8,6 +8,7 @@ import { demoMode } from "@/lib/demo";
 import { acquireSyncLock } from "hevy2garmin";
 import { postgresLockBackend } from "@/lib/sync-lock-store";
 import { getGithubPat, getGithubRepo, triggerViaActions } from "@/lib/github";
+import { retryPendingHr } from "@/lib/hr-refresh";
 
 // Runs the sync at request time — never at build.
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
   const runs: SyncOneResult[] = [];
   const seen = new Set<string>();
   try {
+    await retryPendingHr(sql).catch(() => { /* HR retries must not stop new workout syncs. */ });
     for (let i = 0; i < CAP; i++) {
       // respectGrace: nobody is watching this run, so a workout that just
       // finished can wait for the watch to upload its own activity rather than
@@ -108,7 +110,7 @@ export async function GET(request: Request) {
   // is a workout that did not finish this run, not a failure. `failed` joins
   // the errors, because Garmin refused the import outright.
   const deferred = runs.filter(
-    (r) => status(r) === "deferred" || status(r) === "skipped" || status(r) === "processing",
+    (r) => ["deferred", "skipped", "processing", "merge_pending", "needs_review"].includes(status(r)),
   ).length;
   const failed = runs.filter((r) => status(r) === "error" || status(r) === "failed").length;
   await recordSyncRun(postgresSyncStore(sql), { synced, skipped: deferred, failed }, "cron");

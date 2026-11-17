@@ -3,16 +3,15 @@
  * webhook syncs each finished workout.
  * Replaces the dashboard's toggle, which would do nothing there.
  */
-export function ServerSchedule({ schedule }: { schedule: string }) {
+export function ServerSchedule({ schedule, source = "server" }: { schedule: string; source?: "server" | "vercel" }) {
   return (
     <section className="rounded-xl border border-border bg-surface-elevated p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-text">Auto-sync</h2>
-        <span className="text-sm font-medium text-teal">On</span>
+        <h2 className="text-lg font-semibold text-text">Automatic sync</h2>
+        <span className="text-sm font-medium text-teal">{source === "vercel" ? "Vercel Cron" : "On"}</span>
       </div>
       <p className="mt-0.5 text-sm text-text-secondary">
-        This server syncs {schedule}, and the Hevy webhook syncs each workout shortly after you finish it.
-        The schedule is part of the server&apos;s deployment, not a setting here.
+        {source === "vercel" ? <>Runs {schedule}. You can also sync manually at any time.</> : <>This server syncs {schedule}, and the Hevy webhook syncs each workout shortly after you finish it. The schedule is part of the server&apos;s deployment, not a setting here.</>}
       </p>
     </section>
   );

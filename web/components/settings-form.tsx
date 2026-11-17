@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { withBasePath } from "@/lib/base-path";
+import { convertWeightEntry, weightFromKg, weightToKg, type WeightUnit } from "@/lib/weight-units";
+import { WeightConverter } from "./weight-converter";
 
 interface Props {
   /** A GitHub token is saved (platform_credentials 'github'); the value itself is never sent to the browser. */
@@ -15,6 +17,7 @@ interface Props {
   hrFusionEnabled: boolean;
   mergeWatchStrategy: string;
   weightKg: number | null;
+  weightUnit?: WeightUnit;
   // Profile
   birthYear: number | null;
   sex: string | null;
@@ -22,6 +25,9 @@ interface Props {
   timezone: string | null;
   // Enhance-watch + description
   mergeMode: boolean;
+  waitForWatch?: boolean;
+  hevyHrNotes?: boolean;
+  hevyNotePrivacy?: string;
   descriptionEnabled: boolean;
   mergeOverlapPct: number | null;
   mergeMaxDriftMin: number | null;
@@ -37,9 +43,9 @@ interface Props {
 
 const INTERVALS = [30, 60, 120, 240, 360, 720, 1440];
 const STRATEGIES: { value: string; label: string }[] = [
-  { value: "replace", label: "Replace — upload a fresh strength activity" },
-  { value: "merge", label: "Merge — fold sets/reps into the watch activity" },
-  { value: "describe", label: "Describe — only set the watch activity's notes" },
+  { value: "merge", label: "Keep watch metrics — import Hevy sets" },
+  { value: "describe", label: "Add workout notes — keep watch sets" },
+  { value: "replace", label: "Replace for exercise names — advanced" },
 ];
 
 function fmtInterval(m: number): string {
@@ -84,10 +90,11 @@ export function SettingsForm(p: Props) {
       const res = await fetch(withBasePath("/api/pull-garmin-profile"), { method: "POST" });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; profile?: { weight_kg?: number | null; birth_year?: number | null; sex?: string | null; vo2max?: number | null } };
       if (!res.ok || !j.ok || !j.profile) { setPullMsg(j.error ?? `Request failed (${res.status}).`); return; }
-      if (j.profile.weight_kg != null) setWeight(String(j.profile.weight_kg));
+      if (j.profile.weight_kg != null) setWeightEntry({ value: String(j.profile.weight_kg), unit: "kg" });
       if (j.profile.birth_year != null) setBirthYear(String(j.profile.birth_year));
       if (j.profile.sex) setSex(j.profile.sex);
       if (j.profile.vo2max != null) setVo2max(String(j.profile.vo2max));
+      markChanged();
       setPullMsg("Pulled from Garmin. Values updated below; save to keep them.");
     } catch (err) { setPullMsg(err instanceof Error ? err.message : String(err)); }
     finally { setPulling(false); }
@@ -95,13 +102,18 @@ export function SettingsForm(p: Props) {
   const [interval, setIntervalMin] = useState(p.autoSyncInterval);
   const [hrFusion, setHrFusion] = useState(p.hrFusionEnabled);
   const [strategy, setStrategy] = useState(p.mergeWatchStrategy);
-  const [weight, setWeight] = useState(p.weightKg != null ? String(p.weightKg) : "");
+  const [unit, setUnit] = useState<WeightUnit>(p.weightUnit ?? "kg");
+  const [weightEntry, setWeightEntry] = useState<{ value: string; unit: WeightUnit }>({ value: p.weightKg != null ? String(p.weightKg) : "", unit: "kg" });
+  const weight = convertWeightEntry(weightEntry, unit);
   const [birthYear, setBirthYear] = useState(p.birthYear != null ? String(p.birthYear) : "");
   const [sex, setSex] = useState(p.sex ?? "male");
   const [vo2max, setVo2max] = useState(p.vo2max != null ? String(p.vo2max) : "");
   const [timezone, setTimezone] = useState(p.timezone ?? "");
   const [syncStartDate, setSyncStartDate] = useState(p.syncStartDate ?? "");
   const [mergeMode, setMergeMode] = useState(p.mergeMode);
+  const [waitForWatch, setWaitForWatch] = useState(p.waitForWatch ?? true);
+  const [hevyHrNotes, setHevyHrNotes] = useState(p.hevyHrNotes ?? true);
+  const [notePrivacy, setNotePrivacy] = useState(p.hevyNotePrivacy ?? "private");
   const [descEnabled, setDescEnabled] = useState(p.descriptionEnabled);
   const [overlap, setOverlap] = useState(p.mergeOverlapPct != null ? String(p.mergeOverlapPct) : "70");
   const [drift, setDrift] = useState(p.mergeMaxDriftMin != null ? String(p.mergeMaxDriftMin) : "20");
@@ -118,6 +130,15 @@ export function SettingsForm(p: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const revision = useRef(0);
+
+  function markChanged() {
+    revision.current += 1;
+    setDirty(true);
+    setSaved(false);
+    setError(null);
+  }
 
   function numOrUndef(s: string): number | undefined {
     const t = s.trim();
@@ -131,9 +152,10 @@ export function SettingsForm(p: Props) {
     setError(null);
     setSaved(false);
     setBusy(true);
+    const savingRevision = revision.current;
     try {
       const profile: Record<string, unknown> = {};
-      const w = numOrUndef(weight); if (w !== undefined) profile.weight_kg = w;
+      const w = numOrUndef(weightEntry.value); if (w !== undefined) profile.weight_kg = weightToKg(w, weightEntry.unit);
       const by = numOrUndef(birthYear); if (by !== undefined) profile.birth_year = by;
       profile.sex = sex;
       const vo = numOrUndef(vo2max); if (vo !== undefined) profile.vo2max = vo;
@@ -141,11 +163,13 @@ export function SettingsForm(p: Props) {
 
       const extras = extraTypes.split(",").map((t) => t.trim()).filter(Boolean);
       const body = {
+        display_units: { weight: unit },
         auto_sync: { enabled: autoSync, interval_minutes: interval },
-        hr_fusion: { enabled: hrFusion },
+        hr_fusion: { enabled: hrFusion, hevy_notes: hevyHrNotes, note_privacy: notePrivacy },
         merge_settings: {
           merge_watch_strategy: strategy,
           merge_mode: mergeMode,
+          wait_for_watch: waitForWatch,
           description_enabled: descEnabled,
           merge_overlap_pct: numOrUndef(overlap) ?? 70,
           merge_max_drift_min: numOrUndef(drift) ?? 20,
@@ -173,7 +197,11 @@ export function SettingsForm(p: Props) {
         setError(data.error ?? `Request failed (${res.status}).`);
         return;
       }
-      setSaved(true);
+      // Changes made during a request still need their own save.
+      if (savingRevision === revision.current) {
+        setSaved(true);
+        setDirty(false);
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -183,21 +211,45 @@ export function SettingsForm(p: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
-      {!p.serverSchedule && <div className={cardCls}>
+    <form onSubmit={submit} onChange={markChanged} className="settings-form space-y-6">
+      <div className="settings-save-bar" aria-label="Save preferences">
+        <div className="settings-save-message">
+          <span className="text-sm font-semibold text-text">Preferences</span>
+          <p role="status" aria-live="polite" className={`text-xs ${error ? "text-danger" : saved ? "text-success" : "text-text-muted"}`}>
+            {error ?? (busy ? "Saving your preferences…" : dirty ? "Unsaved changes" : saved ? "Saved. You're all set." : "Save after making changes")}
+          </p>
+        </div>
+        <button type="submit" disabled={busy} className="settings-save-button">
+          {busy ? "Saving…" : "Save settings"}
+        </button>
+      </div>
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold text-text">Weight units</h3>
+        <label className={`${labelCls} mt-3`} htmlFor="sf-weight-unit">Preferred weight unit</label>
+        <select id="sf-weight-unit" value={unit} onChange={(e) => setUnit(e.target.value as WeightUnit)} className={controlCls}>
+          <option value="lb">Pounds (lbs)</option>
+          <option value="kg">Kilograms (kg)</option>
+        </select>
+        <p className="mt-2 text-xs text-text-muted">Used for your body weight and Garmin workout notes. Save to apply to future syncs and resyncs.</p>
+        <WeightConverter />
+      </div>
+      {!p.serverSchedule && <details className="github-settings">
+        <summary>GitHub Actions <span>Optional</span></summary>
+        <div>
         <label className={labelCls} htmlFor="github_pat">GitHub token (auto-sync on your fork)</label>
         <input id="github_pat" type="password" autoComplete="off" value={githubPat} onChange={(e) => setGithubPat(e.target.value)}
           placeholder={p.githubTokenSet ? "•••• saved — enter a new one to replace it" : "ghp_… (repo + workflow scope)"} className={controlCls} />
-        <p className="mt-0.5 text-xs text-text-muted">Stored in your database, same row the Python dashboard uses. Needed to enable auto-sync on Vercel.</p>
-      </div>}
+        <p className="mt-2 text-xs text-text-muted">Optional. Used by GitHub Actions to run scheduled syncs on your fork. Manual syncing does not need a GitHub token.</p>
+        </div>
+      </details>}
       {/* Sync */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {p.serverSchedule ? (
           <div className={cardCls}>
             <span className="text-sm font-semibold text-text">Auto-sync</span>
             <p className="mt-0.5 text-xs text-text-muted">
-              This server syncs {p.serverSchedule}, and the Hevy webhook syncs each finished workout.
-              The schedule is part of the server&apos;s deployment.
+              Scheduled sync runs {p.serverSchedule}. You can also sync manually at any time.
+              The schedule is managed by this deployment.
             </p>
           </div>
         ) : (
@@ -213,7 +265,17 @@ export function SettingsForm(p: Props) {
           </select>
         </div>
         )}
-        <Toggle label="HR fusion" checked={hrFusion} onChange={setHrFusion} hint="Pull heart-rate from a matched Garmin activity into the synced workout." />
+        <Toggle label="HR fusion" checked={hrFusion} onChange={setHrFusion} hint="Prefer the watch activity recording, including connected HR monitors. Daily monitoring is used only when no activity recording is available." />
+      </div>
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold text-text">Heart-rate source &amp; Hevy notes</h3>
+        <p className="mt-2 text-sm text-text-secondary">CIRQA and HRM 600 are detected from the recording when Garmin includes their device information. The app keeps the HR stream recorded by your watch; it cannot change which sensor the watch used. If the watch switches sensors, individual readings may not identify their source.</p>
+        <div className="mt-4"><Toggle label="Add HR summary to Hevy" checked={hevyHrNotes} onChange={setHevyHrNotes} hint="Updates one managed section in the workout description; preserves your own notes and exercise data." /></div>
+        <label className={`${labelCls} mt-4`} htmlFor="sf-note-privacy">Privacy when updating a Hevy note</label>
+        <select id="sf-note-privacy" value={notePrivacy} onChange={(e) => setNotePrivacy(e.target.value)} className={controlCls}>
+          <option value="private">Make updated workouts private</option><option value="public">Make updated workouts public</option><option value="dashboard_only">Dashboard only — do not update Hevy</option>
+        </select>
+        <p className="mt-2 text-xs text-text-muted">Hevy requires a full workout update and does not return its current privacy setting. This choice is applied whenever the app updates its HR note.</p>
       </div>
 
       {/* Profile */}
@@ -221,8 +283,8 @@ export function SettingsForm(p: Props) {
         <h3 className="mb-2 text-sm font-semibold text-text">Your profile</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className={cardCls}>
-            <label className={labelCls} htmlFor="sf-weight">Body weight (kg)</label>
-            <input id="sf-weight" type="number" min={1} max={499} step={0.1} value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="80" className={controlCls} />
+            <label className={labelCls} htmlFor="sf-weight">Body weight ({unit === "lb" ? "lbs" : "kg"})</label>
+            <input id="sf-weight" type="number" min={weightFromKg(1, unit)} max={weightFromKg(499, unit)} step="any" value={weight} onChange={(e) => setWeightEntry({ value: e.target.value, unit })} placeholder={unit === "lb" ? "180" : "80"} className={controlCls} />
           </div>
           <div className={cardCls}>
             <label className={labelCls} htmlFor="sf-birthyear">Birth year</label>
@@ -292,7 +354,9 @@ export function SettingsForm(p: Props) {
             {STRATEGIES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
           </select>
           <p className="mt-1.5 text-xs text-text-muted">How a Hevy workout is combined with a same-time watch activity.</p>
+          <p className={`mt-3 text-sm ${strategy === "replace" ? "text-warm" : "text-text-secondary"}`}>{strategy === "merge" ? "Keeps the original HR and Garmin training metrics. Imports Hevy sets, reps and weights; Garmin may show exercise names as Unknown." : strategy === "describe" ? "Keeps the original HR, training metrics and watch-recorded sets. Updates the title and workout summary." : "Creates a named replacement and removes the original only after its file backup, HR and exercise names are verified. Garmin-only training and recovery metrics do not transfer. The original file remains downloadable from the workout’s HR panel."}</p>
         </div>
+        <div className="mt-4"><Toggle label="Wait for my watch" checked={waitForWatch} onChange={setWaitForWatch} hint="If no eligible watch recording has uploaded, leave the workout pending. It will be checked again on the next daily sync, or you can preview it and explicitly create a separate activity." /></div>
       </div>
 
       {/* Advanced */}
@@ -344,13 +408,6 @@ export function SettingsForm(p: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-lg bg-teal/20 px-4 py-2 text-sm font-medium text-teal transition-colors hover:bg-teal/30 disabled:opacity-50">
-          {busy ? "Saving…" : "Save settings"}
-        </button>
-        {saved && <span className="text-xs text-success">Saved.</span>}
-        {error && <span className="text-xs text-danger" role="alert">{error}</span>}
-      </div>
     </form>
   );
 }

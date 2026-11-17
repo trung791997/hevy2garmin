@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import { getDb } from "@/lib/db";
 import { demoMode } from "@/lib/demo";
 import { demoSettings } from "@/lib/demo-data";
@@ -8,6 +9,8 @@ import { DangerZone } from "@/components/danger-zone";
 import { SessionsCard } from "@/components/sessions-card";
 import { ScanDuplicates } from "@/components/scan-duplicates";
 import { serverSyncSchedule } from "@/lib/server-schedule";
+import { withBasePath } from "@/lib/base-path";
+import { weightUnit } from "@/lib/weight-units";
 
 import { connection } from "next/server";
 
@@ -42,7 +45,8 @@ interface SettingsData {
 const EMPTY: SettingsData = { dbConfigured: false, platforms: [], config: [], syncedCount: 0 };
 
 // The user-editable config the Python app persists to app_cache (config.py).
-const CONFIG_KEYS = ["user_profile", "timing", "hr_fusion", "merge_settings", "auto_sync", "sync_window"];
+const CONFIG_KEYS = ["user_profile", "timing", "hr_fusion", "merge_settings", "auto_sync", "sync_window", "display_units"];
+const PLATFORM_LABELS: Record<string, string> = { garmin_tokens: "Garmin Connect", garmin: "Garmin", hevy: "Hevy", github: "GitHub" };
 
 async function loadSettings(): Promise<SettingsData> {
   if (demoMode()) return demoSettings();
@@ -99,7 +103,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
+  return displayDate(d, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -127,11 +131,11 @@ function StatusPill({ status }: { status: string }) {
   const connected = status === "connected" || status === "active";
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        connected ? "bg-success/15 text-success" : "bg-surface-active text-text-muted"
+      className={`status-label ${
+        connected ? "text-success" : "text-text-muted"
       }`}
     >
-      {status}
+      {connected ? "Connected" : "Not connected"}
     </span>
   );
 }
@@ -159,10 +163,7 @@ export default async function SettingsPage() {
         </p>
       </header>
 
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
-        Editing platform credentials from the web comes in a later phase; the
-        config below is editable now.
-      </div>
+      <p className="settings-connection-link">Manage your Hevy and Garmin accounts in <a href={withBasePath("/setup")} className="text-link">Setup</a>.</p>
 
       {!data.dbConfigured && (
         <div className="mb-6 rounded-lg border border-warm/40 bg-warm/10 p-4 text-sm text-warm">
@@ -178,38 +179,17 @@ export default async function SettingsPage() {
             No platform connections recorded.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface-elevated">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
-                  <th className="px-4 py-2 font-medium">Platform</th>
-                  <th className="px-4 py-2 font-medium">Auth</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Connected</th>
-                  <th className="px-4 py-2 font-medium">Expires</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {data.platforms.map((p) => (
-                  <tr key={p.platform}>
-                    <td className="px-4 py-2 font-medium text-text">{p.platform}</td>
-                    <td className="px-4 py-2 text-text-secondary">
-                      {p.auth_type || "—"}
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusPill status={p.status} />
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2 tabular-nums text-text-muted">
-                      {fmtDate(p.connected_at)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2 tabular-nums text-text-muted">
-                      {fmtDate(p.expires_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="settings-connections">
+            {data.platforms.map((p) => (
+              <li key={p.platform}>
+                <div>
+                  <h3>{PLATFORM_LABELS[p.platform] ?? titleCase(p.platform)}</h3>
+                  <p>{p.connected_at ? `Connected ${fmtDate(p.connected_at)}` : "No connection date recorded"}{p.expires_at ? ` · Expires ${fmtDate(p.expires_at)}` : ""}</p>
+                </div>
+                <StatusPill status={p.status} />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
@@ -224,13 +204,17 @@ export default async function SettingsPage() {
           hrFusionEnabled={hrFusion.enabled == null ? true : Boolean(hrFusion.enabled)}
           mergeWatchStrategy={String(merge.merge_watch_strategy ?? "merge")}
           weightKg={numOrNull(profile.weight_kg)}
+          weightUnit={weightUnit(cfg("display_units").weight)}
           birthYear={numOrNull(profile.birth_year)}
           sex={profile.sex != null ? String(profile.sex) : null}
           vo2max={numOrNull(profile.vo2max)}
           timezone={profile.timezone != null ? String(profile.timezone) : null}
           syncStartDate={syncWindow.start_date != null ? String(syncWindow.start_date) : null}
-          mergeMode={Boolean(merge.merge_mode)}
-          descriptionEnabled={Boolean(merge.description_enabled)}
+          mergeMode={merge.merge_mode == null ? true : Boolean(merge.merge_mode)}
+          waitForWatch={merge.wait_for_watch == null ? true : Boolean(merge.wait_for_watch)}
+          hevyHrNotes={hrFusion.hevy_notes == null ? true : Boolean(hrFusion.hevy_notes)}
+          hevyNotePrivacy={String(hrFusion.note_privacy ?? "private")}
+          descriptionEnabled={merge.description_enabled == null ? true : Boolean(merge.description_enabled)}
           mergeOverlapPct={numOrNull(merge.merge_overlap_pct)}
           mergeMaxDriftMin={numOrNull(merge.merge_max_drift_min)}
           mergeActivityTypes={Array.isArray(merge.merge_activity_types) ? (merge.merge_activity_types as unknown[]).map(String) : []}

@@ -3,14 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/base-path";
+import { SyncPlanDetails } from "./sync-plan-details";
+import type { SyncPlan } from "@/lib/sync-plan";
 
 interface Candidate {
   hevy_id: string;
   title: string | null;
   start_time: string | null;
+  syncState?: { message?: string };
 }
 
 interface SyncResult {
+  plan?: SyncPlan;
+  warnings?: string[];
+  noteStatus?: string;
   status: string;
   dryRun: boolean;
   wouldUpload: boolean;
@@ -43,6 +49,8 @@ function CandidateRow({ c, onSynced }: { c: Candidate; onSynced: (id: string) =>
   const [result, setResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [selected, setSelected] = useState("");
+  const [createNew, setCreateNew] = useState(false);
 
   async function run(live: boolean) {
     setBusy(live ? "live" : "preview");
@@ -51,7 +59,7 @@ function CandidateRow({ c, onSynced }: { c: Candidate; onSynced: (id: string) =>
       const res = await fetch(withBasePath(`/api/sync/${encodeURIComponent(c.hevy_id)}${live ? "?live=1" : ""}`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(live ? { live: 1 } : {}),
+        body: JSON.stringify({ ...(live ? { live: 1 } : {}), ...(selected ? { selectedActivityId: Number(selected) } : {}), createNew }),
       });
       const d = (await res.json().catch(() => ({}))) as SyncResult & { error?: string };
       if (!res.ok) {
@@ -77,6 +85,7 @@ function CandidateRow({ c, onSynced }: { c: Candidate; onSynced: (id: string) =>
         <div className="min-w-0">
           <div className="truncate text-sm font-medium text-text">{c.title || "Untitled workout"}</div>
           <div className="mt-0.5 text-xs text-text-muted">{fmtDate(c.start_time)}</div>
+          {c.syncState?.message && <p className="mt-1 text-xs text-warm">{c.syncState.message}</p>}
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => run(false)} disabled={busy !== null} className={btn}>
@@ -111,12 +120,16 @@ function CandidateRow({ c, onSynced }: { c: Candidate; onSynced: (id: string) =>
       {result && !error && (
         <div className="mt-1.5 text-xs text-text-secondary">
           {result.dryRun ? "Preview: " : ""}
-          {DECISION_LABEL[result.dedupDecision] ?? result.dedupDecision}
+          {result.plan?.message ?? DECISION_LABEL[result.dedupDecision] ?? result.dedupDecision}
           {result.status === "synced" && result.garminActivityId
             ? ` · Garmin ${result.garminActivityId}`
             : ""}
         </div>
       )}
+      {result?.plan && <SyncPlanDetails plan={result.plan} selected={selected} onSelect={(id) => { setSelected(id); setConfirm(false); }} createNew={createNew} onCreateNew={(value) => { setCreateNew(value); setConfirm(false); }} />}
+      {result?.warnings?.map((warning) => <p className="mt-2 text-xs text-warm" key={warning}>{warning}</p>)}
+      {result?.noteStatus && <p className="mt-2 text-xs text-text-secondary">{result.noteStatus}</p>}
+      {result?.error && result.status !== "synced" && <p role="status" className="mt-2 text-xs text-warm">{result.error}</p>}
       {error && (
         <div className="mt-1.5 text-xs text-danger" role="alert">
           {error}

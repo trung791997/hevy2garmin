@@ -12,8 +12,13 @@
  */
 import type { FitProfile, MergeSettings } from "hevy2garmin";
 import type { Sql } from "./pending-store";
+import { weightUnit, type WeightUnit } from "./weight-units";
 
 export interface SyncSettings {
+  weightUnit: WeightUnit;
+  waitForWatch: boolean;
+  hevyHrNotes: boolean;
+  hevyNotePrivacy: "private" | "public" | "dashboard_only" | null;
   merge: MergeSettings;
   hrFusion: boolean;
   descriptionEnabled: boolean;
@@ -26,6 +31,10 @@ export interface SyncSettings {
 
 /** What a fresh install syncs with: merge on, sets pushed into the watch activity. */
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
+  weightUnit: "kg",
+  waitForWatch: true,
+  hevyHrNotes: true,
+  hevyNotePrivacy: "private",
   merge: {
     enabled: true,
     watchStrategy: "merge",
@@ -104,12 +113,13 @@ export async function loadCustomMappings(sql: Sql): Promise<Record<string, [numb
  * with merge silently off.
  */
 export async function loadSyncSettings(sql: Sql): Promise<SyncSettings> {
-  const [mergeCfg, hrCfg, profileCfg, timingCfg, customMappings] = await Promise.all([
+  const [mergeCfg, hrCfg, profileCfg, timingCfg, customMappings, unitsCfg] = await Promise.all([
     readConfig(sql, "merge_settings"),
     readConfig(sql, "hr_fusion"),
     readConfig(sql, "user_profile"),
     readConfig(sql, "timing"),
     loadCustomMappings(sql),
+    readConfig(sql, "display_units"),
   ]);
 
   // Only fields the user actually set are carried, so an absent one keeps the
@@ -133,6 +143,10 @@ export async function loadSyncSettings(sql: Sql): Promise<SyncSettings> {
     : d.merge.activityTypes!;
 
   return {
+    weightUnit: weightUnit(unitsCfg?.weight),
+    waitForWatch: bool(mergeCfg?.wait_for_watch, d.waitForWatch),
+    hevyHrNotes: bool(hrCfg?.hevy_notes, d.hevyHrNotes),
+    hevyNotePrivacy: ["private", "public", "dashboard_only"].includes(String(hrCfg?.note_privacy)) ? hrCfg!.note_privacy as SyncSettings["hevyNotePrivacy"] : d.hevyNotePrivacy,
     merge: {
       enabled: bool(mergeCfg?.merge_mode, d.merge.enabled!),
       watchStrategy:

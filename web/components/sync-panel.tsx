@@ -3,10 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { withBasePath } from "@/lib/base-path";
+import { SyncPlanDetails } from "./sync-plan-details";
+import type { SyncPlan } from "@/lib/sync-plan";
+import type { HrMetadata } from "@/lib/hr-analysis";
 
 /** Mirrors the SyncOneResult shape returned by /api/sync-one. */
 interface SyncResult {
-  status: "synced" | "skipped" | "deferred" | "dry_run" | "none" | "error";
+  status: string;
+  plan?: SyncPlan;
+  hr?: HrMetadata;
+  warnings?: string[];
+  noteStatus?: string;
   dryRun: boolean;
   wouldUpload: boolean;
   dedupDecision: string;
@@ -68,6 +75,8 @@ export function SyncPanel({ ready }: { ready: boolean }) {
   const [busy, setBusy] = useState<null | "preview" | "live">(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmLive, setConfirmLive] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState("");
+  const [createNew, setCreateNew] = useState(false);
 
   async function run(live: boolean) {
     setBusy(live ? "live" : "preview");
@@ -76,7 +85,7 @@ export function SyncPanel({ ready }: { ready: boolean }) {
       const res = await fetch(withBasePath(`/api/sync-one${live ? "?live=1" : ""}`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(live ? { live: 1 } : {}),
+        body: JSON.stringify({ ...(live ? { live: 1 } : {}), ...(result?.workout ? { targetHevyId: result.workout.hevy_id } : {}), ...(selectedActivityId ? { selectedActivityId: Number(selectedActivityId) } : {}), createNew }),
       });
       const d = (await res.json().catch(() => ({}))) as SyncResult & { error?: string };
       if (!res.ok) {
@@ -94,13 +103,12 @@ export function SyncPanel({ ready }: { ready: boolean }) {
   }
 
   return (
-    <section className="mb-8 rounded-xl border border-border bg-surface-elevated p-5">
+    <section className="sync-tool">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-text">Run a sync</h2>
+          <h2 className="text-lg font-semibold text-text">Sync the next workout</h2>
           <p className="mt-0.5 text-sm text-text-secondary">
-            Preview shows what the next sync would do. Nothing is uploaded until
-            you choose Sync now.
+            Preview the next workout before choosing to upload it.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -169,9 +177,14 @@ export function SyncPanel({ ready }: { ready: boolean }) {
               {result.dryRun ? "Preview" : result.status}
             </span>
             <span className="text-sm text-text">
-              {DECISION_LABEL[result.dedupDecision] ?? result.dedupDecision}
+            {result.plan?.message ?? DECISION_LABEL[result.dedupDecision] ?? result.dedupDecision}
             </span>
           </div>
+          {result.plan && <SyncPlanDetails plan={result.plan} selected={selectedActivityId} onSelect={(id) => { setSelectedActivityId(id); setConfirmLive(false); }} createNew={createNew} onCreateNew={(value) => { setCreateNew(value); setConfirmLive(false); }} />}
+          {result.hr && <p className="mt-3 text-sm text-text-secondary">HR: {result.hr.devices.length ? `${result.hr.devices.join(", ")} detected` : result.hr.source.replaceAll("_", " ")} · approximately {result.hr.coveragePct}% coverage. {result.hr.attribution}</p>}
+          {result.noteStatus && <p className="mt-3 text-sm text-text-secondary">{result.noteStatus}</p>}
+          {result.error && result.status !== "synced" && <p role="status" className="mt-2 text-sm text-warm">{result.error}</p>}
+          {result.warnings?.map((warning) => <p key={warning} role="status" className="mt-2 text-sm text-warm">{warning}</p>)}
 
           {result.workout && (
             <div className="mt-3 text-sm">

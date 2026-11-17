@@ -105,39 +105,43 @@ export function SyncLoop({ ready }: { ready: boolean }) {
   const onGarmin = state.total > 0 ? state.total - state.remaining : state.synced;
 
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+    <div className={`sync-primary${!running && state.done && !state.errorKind && state.synced > 0 ? " sync-completed" : ""}`} aria-busy={running}>
+      <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
-          <h3 className="text-sm font-semibold text-text">Sync all</h3>
-          <p className="mt-0.5 text-xs text-text-muted">
-            Upload every pending Hevy workout to Garmin, one at a time, with live progress.
+          <h2 className="text-lg font-semibold text-text">Sync workouts</h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            {running ? "Sending your workouts to Garmin Connect…" : "Send your Hevy workouts to Garmin Connect."}
           </p>
         </div>
         {running ? (
-          <button
-            type="button"
-            onClick={() => { stopRef.current = true; }}
-            className="rounded-lg border border-warm/50 px-3 py-1.5 text-xs font-medium text-warm transition-colors hover:bg-warm/15"
-          >
-            Stop
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="sync-running"><svg className="sync-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M20 7a9 9 0 0 0-15-2L2 8m0-5v5h5m-3 9a9 9 0 0 0 15 2l3-3m0 5v-5h-5" /></svg>Syncing</span>
+            <button
+              type="button"
+              onClick={() => { stopRef.current = true; }}
+              className="rounded-lg border border-warm/50 px-3 py-1.5 text-xs font-medium text-warm transition-colors hover:bg-warm/15"
+            >
+              Stop
+            </button>
+          </div>
         ) : !confirming ? (
           <button
             type="button"
             onClick={() => setConfirming(true)}
             disabled={!ready}
             title={!ready ? "Connect Hevy and Garmin first" : undefined}
-            className="rounded-lg bg-teal/20 px-4 py-1.5 text-xs font-medium text-teal transition-colors hover:bg-teal/30 disabled:opacity-50"
+            className="sync-primary-button"
           >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 7a9 9 0 0 0-15-2L2 8m0-5v5h5m-3 9a9 9 0 0 0 15 2l3-3m0 5v-5h-5" /></svg>
             Sync all now
           </button>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted">Upload all pending to Garmin?</span>
-            <button type="button" onClick={runLoop} className="rounded-lg bg-teal px-3 py-1.5 text-xs font-medium text-black">
+          <div className="sync-confirmation">
+            <p>Upload all pending workouts to Garmin?</p>
+            <button type="button" onClick={runLoop} className="sync-primary-button">
               Start
             </button>
-            <button type="button" onClick={() => setConfirming(false)} className="text-xs text-text-muted underline">
+            <button type="button" onClick={() => setConfirming(false)} className="sync-cancel">
               Cancel
             </button>
           </div>

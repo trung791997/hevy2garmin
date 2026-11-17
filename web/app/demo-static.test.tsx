@@ -75,8 +75,9 @@ describe("demo mode renders every data page with no database", () => {
 
   it("settings shows the connections and config", async () => {
     const html = renderToStaticMarkup(await SettingsPage());
-    expect(html).toContain("garmin");
-    expect(html).toContain("hevy");
+    // The redesigned settings page capitalizes the connection names.
+    expect(html.toLowerCase()).toContain("garmin");
+    expect(html.toLowerCase()).toContain("hevy");
     expect(html).not.toContain("No database is configured");
   });
 

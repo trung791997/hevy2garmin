@@ -38,7 +38,7 @@ export function WorkoutList({ items }: { items: WorkoutItem[] }) {
   }
 
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-elevated">
+    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
       {items.map((w) => (
         <WorkoutRow
           key={w.hevy_id}

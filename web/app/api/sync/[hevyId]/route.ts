@@ -162,7 +162,11 @@ export async function POST(
   if (asksFor(request, body, "resync")) return resync(sql, hevyId, dryRun);
 
   try {
-    const result = await syncOneWorkout(sql, { dryRun, targetHevyId: hevyId });
+    const selectedActivityId = Number(body.selectedActivityId);
+    const result = await syncOneWorkout(sql, { dryRun, targetHevyId: hevyId,
+      ...(Number.isSafeInteger(selectedActivityId) && selectedActivityId > 0 ? { selectedActivityId } : {}),
+      ...(body.createNew === true ? { createNew: true } : {}),
+    });
     if (!dryRun) {
       // Same reason as /api/sync-one: the Workouts page's per-workout button is
       // a manual sync and has to leave a trace. Recorded here rather than in

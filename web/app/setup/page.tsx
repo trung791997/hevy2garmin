@@ -1,3 +1,4 @@
+import { displayDate } from "@/lib/display-date";
 import { getDb } from "@/lib/db";
 import { demoMode } from "@/lib/demo";
 import { demoSetup } from "@/lib/demo-data";
@@ -5,7 +6,7 @@ import { authEnabled, productionRuntime } from "@/lib/auth";
 import { loadGarminConnection, loadHevyConnection, type Connection } from "@/lib/connections";
 import { ConnectHevy } from "@/components/connect-hevy";
 import { ConnectGarmin } from "@/components/connect-garmin";
-import { directGarminLogin } from "@/lib/direct-login-flag";
+import { directGarminLogin, browserGarminLogin } from "@/lib/direct-login-flag";
 import { SetupTimezone } from "@/components/setup-timezone";
 
 import { connection } from "next/server";
@@ -53,7 +54,7 @@ function fmtDate(value: string | null): string {
   if (!value) return "";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return displayDate(d, { year: "numeric", month: "short", day: "numeric" });
 }
 
 /**
@@ -148,9 +149,9 @@ export default async function SetupPage() {
       )}
 
       {/* Hevy */}
-      <section className="mb-6 rounded-xl border border-border bg-surface-elevated p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-text">Hevy</h2>
+      <section className="account-section">
+        <div className="account-heading">
+          <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M4 9l5-5m6 16 5-5M2 7l5-5m10 20 5-5" /></svg>Hevy</h2>
           <StatusDot connected={hevyConnected} />
         </div>
         {hevyConnected && data.hevy.connectedAt && (
@@ -158,13 +159,13 @@ export default async function SetupPage() {
             Connected {fmtDate(data.hevy.connectedAt)}.
           </p>
         )}
-        <ConnectHevy connected={hevyConnected} />
+        {hevyConnected ? <details className="account-reconnect"><summary>Replace API key <span aria-hidden="true">↗</span></summary><ConnectHevy connected={hevyConnected} /></details> : <ConnectHevy connected={hevyConnected} />}
       </section>
 
       {/* Garmin */}
-      <section className="rounded-xl border border-border bg-surface-elevated p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-text">Garmin Connect</h2>
+      <section className="account-section">
+        <div className="account-heading">
+          <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="6" y="5" width="12" height="14" rx="3" /><path d="m9 5 1-4h4l1 4M9 19l1 4h4l1-4m-6-7 2 2 4-4" /></svg>Garmin Connect</h2>
           <StatusDot connected={garminConnected} />
         </div>
         {garminConnected && data.garmin.connectedAt && (
@@ -172,15 +173,15 @@ export default async function SetupPage() {
             Connected {fmtDate(data.garmin.connectedAt)}.
           </p>
         )}
-        <ConnectGarmin connected={garminConnected} directLogin={directGarminLogin()} />
+        {garminConnected ? <details className="account-reconnect"><summary>Reconnect account <span aria-hidden="true">↗</span></summary><ConnectGarmin connected={garminConnected} directLogin={directGarminLogin()} browserOnly={browserGarminLogin()} /></details> : <ConnectGarmin connected={garminConnected} directLogin={directGarminLogin()} browserOnly={browserGarminLogin()} />}
       </section>
 
       {/* Timezone (#639). Last, because it only matters once something can sync,
           and first-time users should not meet a text field before the two
           connections that actually gate everything. */}
-      <section className="mt-6 rounded-xl border border-border bg-surface-elevated p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-text">Timezone</h2>
+      <section className="account-section">
+        <div className="account-heading">
+          <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z" /></svg>Timezone</h2>
           <StatusDot connected={data.timezone !== null} labels={["Set", "Not set"]} tone="bg-text-muted" />
         </div>
         <SetupTimezone current={data.timezone} />

@@ -31,7 +31,11 @@ export async function GET() {
 
   try {
     const candidates = await listCandidates(sql);
-    return NextResponse.json({ candidates });
+    let states: Array<{ key: string; value: unknown }> = [];
+    try { states = await sql`SELECT key,value FROM app_cache WHERE starts_with(key,'sync_state_')`; }
+    catch { /* Progress metadata is optional; keep the candidate list available. */ }
+    const byId = new Map(states.map((row) => [String(row.key).slice("sync_state_".length), row.value]));
+    return NextResponse.json({ candidates: candidates.map((c) => ({ ...c, ...(byId.has(c.hevy_id) ? { syncState: byId.get(c.hevy_id) } : {}) })) });
   } catch (err) {
     // A missing Hevy key or a Hevy outage should degrade gracefully, not 500 the
     // whole page — surface the message and an empty list.

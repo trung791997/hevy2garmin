@@ -58,13 +58,12 @@ export function BatchSync({ ready, onServer = false }: { ready: boolean; onServe
   }
 
   return (
-    <section className="mb-8 rounded-xl border border-border bg-surface-elevated p-5">
+    <section className="sync-tool">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-text">Sync everything</h2>
+          <h2 className="text-lg font-semibold text-text">Batch sync</h2>
           <p className="mt-0.5 text-sm text-text-secondary">
-            Preview all counts what would sync. Sync all uploads every pending
-            workout{onServer ? " now, on this server" : " (via the scheduled job when deployed)"}.
+            Preview the total, then sync every pending workout{onServer ? " on this server" : " in a single batch"}.
           </p>
         </div>
         <div className="flex items-center gap-2">

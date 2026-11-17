@@ -36,6 +36,12 @@ function brokenSql(): Sql {
 }
 
 describe("loadSyncSettings", () => {
+  it("loads pounds for display without converting stored profile kilograms", async () => {
+    const s = await loadSyncSettings(fakeSql({ display_units: { weight: "lb" }, user_profile: { weight_kg: 83.6 } }));
+    expect(s.weightUnit).toBe("lb");
+    expect(s.profile.weightKg).toBe(83.6);
+    expect((await loadSyncSettings(fakeSql({ display_units: { weight: "invalid" } }))).weightUnit).toBe("kg");
+  });
   it("reads the shape the Settings page saves", async () => {
     const s = await loadSyncSettings(
       fakeSql({

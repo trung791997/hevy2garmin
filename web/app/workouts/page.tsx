@@ -120,15 +120,9 @@ export default async function WorkoutsPage() {
       <header className="mb-4">
         <h1 className="text-2xl font-bold text-text">Workouts</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Terminal and in-flight workouts recorded in the database.
+          Review pending workouts and manage what you have synced to Garmin.
         </p>
       </header>
-
-      <div className="mb-6 rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
-        Sync an unsynced workout from the To sync list, resolve an in-flight one
-        with Mark as synced / Skip / Abandon, and expand a Garmin-matched workout
-        to see its cached heart-rate.
-      </div>
 
       {data.dbConfigured && <CandidatesList />}
 
@@ -139,7 +133,7 @@ export default async function WorkoutsPage() {
       )}
 
       {data.items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface p-8 text-center">
+        <div className="empty-state">
           <p className="text-sm font-medium text-text-secondary">
             No workouts recorded yet.
           </p>

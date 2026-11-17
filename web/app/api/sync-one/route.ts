@@ -105,7 +105,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await syncOneWorkout(sql, { dryRun });
+    const selectedActivityId = Number(body.selectedActivityId);
+    const result = await syncOneWorkout(sql, { dryRun,
+      ...(typeof body.targetHevyId === "string" ? { targetHevyId: body.targetHevyId } : {}),
+      ...(Number.isSafeInteger(selectedActivityId) && selectedActivityId > 0 ? { selectedActivityId } : {}),
+      ...(body.createNew === true ? { createNew: true } : {}),
+    });
     if (!dryRun && !isBatch(request)) {
       // The log is an audit trail, not the job. A failure to record must never
       // turn a completed upload into an error the user sees.

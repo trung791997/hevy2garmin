@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { findMergeMatch, mergeSearchRange, type CandidateActivity, type GarminGateway } from "hevy2garmin";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mergeSearchRange, type CandidateActivity, type GarminGateway } from "hevy2garmin";
 import { withGarminLocalDates } from "./garmin-local-dates";
+import { planSync } from "./sync-plan";
+import { DEFAULT_SYNC_SETTINGS } from "./sync-settings";
 
 function localCalendarListing(activities: CandidateActivity[]) {
   const list = vi.fn(async (start: string, end: string) => activities.filter((a) => {
@@ -9,46 +11,42 @@ function localCalendarListing(activities: CandidateActivity[]) {
   }));
   return { list, gateway: { activitiesByDate: list } as unknown as GarminGateway };
 }
-const now = new Date("2026-06-20T00:00:00Z");
 
 describe("Garmin local-date activity listing", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-01T00:00:00Z")); });
+  afterEach(() => { vi.useRealTimers(); });
   it.each([
-    { name: "an evening west of UTC", local: "2026-06-14 23:50:11", start: "04:50", end: "06:10" },
-    { name: "a morning east of UTC", local: "2026-06-16 01:50:11", start: "12:50", end: "14:10" },
-  ])("finds the same watch session on $name", async ({ local, start, end }) => {
-    const workout = { start_time: `2026-06-15T${start}:00Z`, end_time: `2026-06-15T${end}:00Z` };
-    const activity = { activityId: 42, manufacturer: "GARMIN", activityType: { typeKey: "strength_training" }, startTimeGMT: `2026-06-15 ${start}:11`, startTimeLocal: local, duration: 4800 };
+    { name: "an evening session west of UTC", local: "2026-10-28 23:50:11", start: "04:50", end: "06:10" },
+    { name: "a morning session east of UTC", local: "2026-10-30 01:50:11", start: "12:50", end: "14:10" },
+  ])("finds $name without changing the timestamp match", async ({ local, start, end }) => {
+    const workout = { id: "workout", start_time: `2026-10-29T${start}:00Z`, end_time: `2026-10-29T${end}:00Z` };
+    const activity = { activityId: 42, activityName: "Strength", manufacturer: "GARMIN", activityType: { typeKey: "strength_training" }, startTimeGMT: `2026-10-29 ${start}:11`, startTimeLocal: local, duration: 4800 };
     const { list, gateway } = localCalendarListing([activity]);
     const range = mergeSearchRange(workout)!;
-    const before = await gateway.activitiesByDate(range.start, range.end);
-    expect(findMergeMatch(workout, before, { now })).toBeNull();
-
+    const unpadded = await gateway.activitiesByDate(range.start, range.end);
+    expect(planSync(workout, unpadded, DEFAULT_SYNC_SETTINGS).action).toBe("waiting");
     const padded = withGarminLocalDates(gateway);
-    const after = await padded.activitiesByDate(range.start, range.end);
-    expect(list).toHaveBeenLastCalledWith("2026-06-14", "2026-06-16");
-    const match = findMergeMatch(workout, after, { now });
-    expect(match?.activity.activityId).toBe(42);
-    expect(match?.driftMinutes).toBeCloseTo(11 / 60);
-    expect(match?.overlapPct).toBeGreaterThan(0.99);
-    // Repeated lookups start from the same dates, without accumulating padding.
+    const plan = planSync(workout, await padded.activitiesByDate(range.start, range.end), DEFAULT_SYNC_SETTINGS);
+    expect(list).toHaveBeenLastCalledWith("2026-10-28", "2026-10-30");
+    expect(plan.action).toBe("merge");
+    expect(plan.selectedId).toBe(42);
+    expect(plan.candidates[0].overlapPct).toBe(100);
+    expect(plan.candidates[0].start).toBe(`2026-10-29T${start}:11.000Z`);
+    // Engine and preview can independently repeat the same lookup.
     await padded.activitiesByDate(range.start, range.end);
-    expect(list).toHaveBeenLastCalledWith("2026-06-14", "2026-06-16");
+    expect(list).toHaveBeenLastCalledWith("2026-10-28", "2026-10-30");
   });
 
-  it("keeps overlap, drift and activity-type checks after widening the listing", async () => {
-    const workout = { start_time: "2026-06-15T04:50:00Z", end_time: "2026-06-15T06:10:00Z" };
-    const base = { manufacturer: "GARMIN", duration: 4800, activityType: { typeKey: "strength_training" }, startTimeLocal: "2026-06-14 23:50:00" };
-    const { gateway } = localCalendarListing([
-      { ...base, activityId: 1, startTimeGMT: "2026-06-14 04:50:00" },
-      { ...base, activityId: 2, startTimeGMT: "2026-06-15 04:50:00", activityType: { typeKey: "running" } },
-      { ...base, activityId: 3, startTimeGMT: "2026-06-15 04:20:00" },
-    ]);
-    const activities = await withGarminLocalDates(gateway).activitiesByDate("2026-06-15", "2026-06-15");
-    expect(activities).toHaveLength(3);
-    expect(findMergeMatch(workout, activities, { now })).toBeNull();
+  it("still excludes an unrelated session returned by the wider listing", async () => {
+    const workout = { id: "workout", start_time: "2026-10-29T04:50:00Z", end_time: "2026-10-29T06:10:00Z" };
+    const other = { activityId: 7, manufacturer: "GARMIN", activityType: { typeKey: "strength_training" }, startTimeGMT: "2026-10-28 04:50:00", startTimeLocal: "2026-10-27 23:50:00", duration: 4800 };
+    const { gateway } = localCalendarListing([other]);
+    const activities = await withGarminLocalDates(gateway).activitiesByDate("2026-10-28", "2026-10-29");
+    expect(activities).toHaveLength(1);
+    expect(planSync(workout, activities, DEFAULT_SYNC_SETTINGS)).toMatchObject({ action: "waiting", selectedId: null, candidates: [] });
   });
 
-  it("handles year boundaries and propagates Garmin failures", async () => {
+  it("expands across year boundaries and passes listing failures through", async () => {
     const list = vi.fn().mockRejectedValue(new Error("Garmin unavailable"));
     const gateway = withGarminLocalDates({ activitiesByDate: list } as unknown as GarminGateway);
     await expect(gateway.activitiesByDate("2026-12-31", "2027-01-01")).rejects.toThrow("Garmin unavailable");

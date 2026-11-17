@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { directGarminLogin } from "./direct-login-flag";
+import { browserGarminLogin, directGarminLogin } from "./direct-login-flag";
 import { workerLogin, workerLoginMfa } from "./garmin-login-worker";
 import { POST as ticketExchange } from "@/app/api/garmin-ticket-exchange/route";
 
@@ -46,7 +46,9 @@ function exchangeRequest(body: unknown) {
 beforeEach(() => {
   hosts = [];
   delete process.env.H2G_DIRECT_GARMIN_LOGIN;
+  delete process.env.H2G_GARMIN_BROWSER_ONLY;
   delete process.env.GARMIN_LOGIN_WORKER_URL;
+  delete process.env.VERCEL;
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -54,6 +56,27 @@ afterEach(() => {
 });
 
 describe("the flag", () => {
+  it("keeps browser-only setup on Vercel without enabling local ticket exchange", async () => {
+    process.env.VERCEL = "1";
+    process.env.H2G_GARMIN_BROWSER_ONLY = "true";
+    process.env.H2G_DIRECT_GARMIN_LOGIN = "false";
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    expect(browserGarminLogin()).toBe(true);
+    expect(directGarminLogin()).toBe(false);
+    expect((await ticketExchange(exchangeRequest({ ticket: "ST-cloud" }))).status).toBe(404);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("browser-only sign-in exchanges the ticket directly with Garmin without a Worker", async () => {
+    process.env.H2G_GARMIN_BROWSER_ONLY = "true";
+    process.env.GARMIN_LOGIN_WORKER_URL = "https://unused.example.workers.dev";
+    vi.stubGlobal("fetch", fakeGarmin("success"));
+    const res = await ticketExchange(exchangeRequest({ ticket: "ST-browser" }));
+    expect(res.status).toBe(200);
+    expect(hosts).toEqual(["diauth.garmin.com"]);
+  });
+
   it("is off unless set to a true value", () => {
     expect(directGarminLogin()).toBe(false);
     for (const v of ["1", "true", "TRUE", " yes ", "on"]) {
