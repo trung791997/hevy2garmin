@@ -1,9 +1,15 @@
 import { getDb } from "@/lib/db";
+import { demoMode } from "@/lib/demo";
+import { demoWorkouts } from "@/lib/demo-data";
 import { WorkoutList } from "@/components/workout-list";
 import { CandidatesList } from "@/components/candidates-list";
 
-// Queries the live hevy2garmin Postgres per request — never at build time.
-export const dynamic = "force-dynamic";
+import { connection } from "next/server";
+
+// Self-hosted, this reads Postgres per request and renders dynamically. The public
+// demo has no database and serves fixed sample data, so it prerenders as a static
+// page. The connection() call in the component forces the dynamic render off the
+// demo; leaving it out in demo mode lets the page be prerendered at build.
 
 interface WorkoutItem {
   hevy_id: string;
@@ -27,6 +33,7 @@ interface WorkoutsData {
 const EMPTY: WorkoutsData = { dbConfigured: false, items: [] };
 
 async function loadWorkouts(): Promise<WorkoutsData> {
+  if (demoMode()) return demoWorkouts();
   let sql: ReturnType<typeof getDb>;
   try {
     sql = getDb();
@@ -105,6 +112,7 @@ async function loadWorkouts(): Promise<WorkoutsData> {
 }
 
 export default async function WorkoutsPage() {
+  if (!demoMode()) await connection();
   const data = await loadWorkouts();
 
   return (
