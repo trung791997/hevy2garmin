@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveDatabaseUrl, DATABASE_URL_VARS } from "./database-url";
+import { resolveDatabaseUrl, DATABASE_URL_VARS, pgConnectionString } from "./database-url";
 
 /**
  * The web read `DATABASE_URL` and nothing else, while Python reads four names
@@ -63,5 +63,40 @@ describe("resolveDatabaseUrl", () => {
       "STORAGE_URL",
       "NEON_DATABASE_URL",
     ]);
+  });
+});
+
+describe("pgConnectionString", () => {
+  const base = "postgres://u:p@ep-x.neon.tech/db";
+
+  it.each(["require", "prefer", "verify-ca"])("makes sslmode=%s explicit verify-full", (mode) => {
+    expect(pgConnectionString(`${base}?sslmode=${mode}`)).toBe(`${base}?sslmode=verify-full`);
+  });
+
+  it("keeps the other query parameters, in place", () => {
+    expect(pgConnectionString(`${base}?connect_timeout=10&sslmode=require&channel_binding=require`)).toBe(
+      `${base}?connect_timeout=10&sslmode=verify-full&channel_binding=require`,
+    );
+  });
+
+  it("leaves verify-full, disable and a missing sslmode alone", () => {
+    expect(pgConnectionString(`${base}?sslmode=verify-full`)).toBe(`${base}?sslmode=verify-full`);
+    expect(pgConnectionString(`${base}?sslmode=disable`)).toBe(`${base}?sslmode=disable`);
+    expect(pgConnectionString(base)).toBe(base);
+  });
+
+  it("respects an explicit opt-in to libpq semantics", () => {
+    const url = `${base}?sslmode=require&uselibpqcompat=true`;
+    expect(pgConnectionString(url)).toBe(url);
+  });
+
+  it("does not touch a password that happens to contain the words", () => {
+    const url = "postgres://u:sslmode=require@host/db";
+    expect(pgConnectionString(url)).toBe(url);
+  });
+
+  it("parses to the same ssl option pg already used, so behavior is unchanged", async () => {
+    const { parse } = await import("pg-connection-string");
+    expect(parse(pgConnectionString(`${base}?sslmode=require`)).ssl).toEqual(parse(`${base}?sslmode=require`).ssl);
   });
 });

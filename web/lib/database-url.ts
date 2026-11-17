@@ -47,3 +47,20 @@ export function resolveDatabaseUrl(
 
 /** The names, for an error message that tells the user what to actually set. */
 export const DATABASE_URL_HINT = DATABASE_URL_VARS.join(", ");
+
+/**
+ * The connection string for node-postgres (`pg`), which `garmin-auth`'s DBTokenStore uses.
+ *
+ * `pg` already treats `sslmode=prefer|require|verify-ca` as `verify-full`, and prints a SECURITY
+ * WARNING on every cold start saying that pg v9 will switch them to libpq's weaker meaning
+ * (encrypted, certificate not verified). Spelling out `verify-full` keeps today's behavior exactly
+ * (the parsed `ssl` option is identical), silences the warning, and means a later `pg` upgrade
+ * cannot quietly weaken the connection. A URL that already opts into libpq semantics with
+ * `uselibpqcompat=true`, has no `sslmode`, or uses `disable` / `verify-full` is left alone.
+ *
+ * Only for `pg`. The `postgres` client behind `getDb()` reads `sslmode` itself and is untouched.
+ */
+export function pgConnectionString(url: string): string {
+  if (/[?&]uselibpqcompat=true(?=&|$)/i.test(url)) return url;
+  return url.replace(/([?&]sslmode=)(?:prefer|require|verify-ca)(?=&|$|#)/i, "$1verify-full");
+}
